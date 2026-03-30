@@ -4,9 +4,11 @@ A collection of AI agent skills for [Cursor](https://cursor.com) that integrate 
 
 ## Available Skills
 
-| Skill | Description |
-|-------|-------------|
-| **[Daily Digest](.cursor/skills/daily-digest/SKILL.md)** | Summarizes your Slack channels, DMs, and Jira mentions into a browsable daily report |
+
+| Skill                                                    | Description                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Daily Digest](.cursor/skills/daily-digest/SKILL.md)** | - Summarizes your Slack channels, DMs, and Jira mentions into a browsable daily report. - Track actions for you and your team members, which you can mark as done. - Track Features in Jira which you want to watch for progress & get summary updates that span Jira and Slack. |
+
 
 ## Prerequisites
 
@@ -121,7 +123,6 @@ Add your Jira feature keys to `feature_watchlist.json`.
 Open the `cursor-skills` folder in Cursor. The skills are automatically discovered. Try:
 
 > "Give me a daily digest for yesterday"
-
 
 ## Viewing Digests
 
