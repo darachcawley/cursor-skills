@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Daily Digest</title>
+    <style>
+      :root {
+        --bg: #0f1419;
+        --surface: #1a2332;
+        --surface-hover: #1f2b3d;
+        --border: #2d3a4d;
+        --text: #e7ecf3;
+        --muted: #8b9cb3;
+        --accent: #38bdf8;
+        --accent-dim: rgba(56, 189, 248, 0.12);
+        --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+        font-size: 14px;
+        line-height: 1.5;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .app {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        height: 100vh;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.65rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+      header h1 {
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      header .hint {
+        font-size: 12px;
+        color: var(--muted);
+        text-align: right;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 220px 1fr 360px;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .sidebar-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        padding: 0.75rem 1rem 0.5rem;
+      }
+      .sidebar-list {
+        list-style: none;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .sidebar-list li {
+        border-bottom: 1px solid var(--border);
+      }
+      .sidebar-list button {
+        width: 100%;
+        text-align: left;
+        padding: 0.6rem 1rem;
+        font: inherit;
+        font-size: 13px;
+        background: transparent;
+        color: var(--text);
+        border: none;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        border-left: 3px solid transparent;
+        transition: background 0.1s;
+      }
+      .sidebar-list button:hover {
+        background: var(--surface-hover);
+      }
+      .sidebar-list button.active {
+        background: var(--accent-dim);
+        border-left-color: var(--accent);
+        color: var(--accent);
+      }
+      .sidebar-list .date-label {
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .sidebar-list .date-meta {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .sidebar-list button.active .date-meta {
+        color: var(--accent);
+        opacity: 0.7;
+      }
+
+      /* Main content */
+      .main {
+        overflow-y: auto;
+        padding: 1.25rem clamp(1rem, 3vw, 2.5rem) 3rem;
+      }
+      .digest-header {
+        margin-bottom: 1.5rem;
+      }
+      .digest-header h2 {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+      .digest-header .generated {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* Stats bar */
+      .stats-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-bottom: 1.5rem;
+      }
+      .stat-pill {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.5rem 0.85rem;
+        min-width: 6.5rem;
+      }
+      .stat-pill strong {
+        display: block;
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .stat-pill span {
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      /* Channel section */
+      .channel-section {
+        margin-bottom: 1.75rem;
+      }
+      .channel-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.35rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      /* Thread card */
+      .thread-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.75rem;
+        transition: border-color 0.15s;
+      }
+      .thread-card:hover {
+        border-color: rgba(56, 189, 248, 0.3);
+      }
+      .thread-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.45rem;
+      }
+      .thread-participants {
+        font-size: 12px;
+        color: var(--muted);
+        font-family: var(--mono);
+      }
+      .thread-link {
+        font-size: 12px;
+        color: var(--accent);
+        text-decoration: none;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .thread-link:hover { text-decoration: underline; }
+      .thread-summary {
+        font-size: 13px;
+        line-height: 1.55;
+        margin-bottom: 0.5rem;
+      }
+
+      /* Actions */
+      .actions-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .action-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        font-size: 12.5px;
+        padding: 0.4rem 0.55rem;
+        border-radius: 6px;
+        background: var(--bg);
+        border-left: 3px solid var(--border);
+      }
+      .action-badge {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        background: rgba(56, 189, 248, 0.15);
+        color: var(--accent);
+      }
+      .action-badge.tagged {
+        background: rgba(99, 102, 241, 0.2);
+        color: #a5b4fc;
+      }
+      .action-badge.jira {
+        background: rgba(138, 43, 226, 0.15);
+        color: #9b59b6;
+      }
+      .action-checkbox {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--muted);
+        border-radius: 4px;
+        background: transparent;
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-top: 1px;
+        transition: all 0.15s;
+      }
+      .action-checkbox:checked {
+        background: #475569;
+        border-color: #475569;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+        background-size: 12px;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+      .action-checkbox:hover {
+        border-color: var(--accent);
+      }
+      .action-done {
+        opacity: 0.5;
+        border-left-color: #475569 !important;
+      }
+      .action-done .action-text,
+      .action-done .todo-action-text {
+        text-decoration: line-through;
+        text-decoration-color: #475569;
+      }
+      .action-done .action-badge {
+        background: rgba(71, 85, 105, 0.2) !important;
+        color: #475569 !important;
+      }
+      .action-owner {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: #7dd3fc;
+        background: rgba(56, 189, 248, 0.15);
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+        flex-shrink: 0;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: background 0.12s;
+      }
+      a.action-owner:hover {
+        background: rgba(56, 189, 248, 0.3);
+        color: #bae6fd;
+      }
+      .action-text { flex: 1; }
+      .no-actions {
+        font-size: 12px;
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      /* Empty / loading states */
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 300px;
+        color: var(--muted);
+        text-align: center;
+        gap: 0.75rem;
+      }
+      .empty-state h3 {
+        font-size: 1.1rem;
+        color: var(--text);
+      }
+      .empty-state p {
+        max-width: 360px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .error { color: #f87171; }
+
+      /* Actions-only filter */
+      .filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+      }
+      .filter-bar label {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 12px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .filter-bar select {
+        padding: 0.3rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+        font-size: 12px;
+      }
+
+      /* To Do view */
+      .todo-header { margin-bottom: 1.25rem; }
+      .todo-header h2 {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+      .todo-header .todo-subtitle {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .todo-filters {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+        padding: 0.85rem 1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .todo-filters .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .todo-filters .filter-group label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .todo-filters select {
+        padding: 0.35rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 12px;
+      }
+      .todo-action-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        padding: 0.65rem 0.85rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        border-left: 3px solid var(--border);
+        transition: border-color 0.15s;
+      }
+      .todo-action-row:hover {
+        border-color: rgba(56, 189, 248, 0.3);
+        border-left-color: inherit;
+      }
+      .todo-action-row.jira { border-left-color: #9b59b6; }
+      .todo-action-row.tagged { border-left-color: #a5b4fc; }
+      .todo-jira-row { background: rgba(138,43,226,0.03); }
+      .todo-action-row .todo-action-body { flex: 1; min-width: 0; }
+      .todo-action-row .todo-action-text {
+        font-size: 13px;
+        line-height: 1.45;
+        margin-bottom: 0.2rem;
+      }
+      .todo-action-row .todo-action-meta {
+        font-size: 11px;
+        color: var(--muted);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.75rem;
+        align-items: center;
+      }
+      .todo-action-row .todo-action-meta a {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 11px;
+      }
+      .todo-action-row .todo-action-meta a:hover { text-decoration: underline; }
+      .todo-count {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 1rem;
+      }
+      .exec-summary {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        list-style: none;
+      }
+      .exec-summary::-webkit-details-marker { display: none; }
+      .exec-summary > summary {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        list-style: none;
+        user-select: none;
+      }
+      .exec-summary > summary::-webkit-details-marker { display: none; }
+      .exec-summary > summary::before {
+        content: '▸';
+        font-size: 12px;
+        color: var(--muted);
+        transition: transform 0.15s ease;
+        flex-shrink: 0;
+      }
+      .exec-summary[open] > summary::before {
+        transform: rotate(90deg);
+      }
+      .exec-summary-body {
+        margin-top: 0.75rem;
+        border-radius: 10px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+      .exec-summary h3 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .exec-summary-section {
+        margin-bottom: 1rem;
+      }
+      .exec-summary-section:last-child {
+        margin-bottom: 0;
+      }
+      .exec-summary-section h4 {
+        margin: 0 0 0.4rem 0;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .exec-summary-section h4.today-label { color: var(--accent); }
+      .exec-summary-section h4.week-label { color: var(--muted); }
+      .exec-summary-section h4.highlights-label { color: var(--accent); }
+      .exec-summary ol, .exec-summary ul {
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+      .exec-summary li {
+        font-size: 13px;
+        line-height: 1.55;
+        margin-bottom: 0.3rem;
+        color: var(--text-secondary);
+      }
+      .exec-summary li strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .exec-summary li a {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 11px;
+      }
+      .exec-summary li a:hover { text-decoration: underline; }
+      .exec-summary .exec-owner {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .exec-summary .exec-channel {
+        font-size: 11px;
+        color: var(--muted);
+        margin-left: 0.25rem;
+      }
+      .todo-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid var(--border);
+      }
+      .todo-tab {
+        padding: 0.6rem 1.25rem;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        background: transparent;
+        color: var(--muted);
+        border: none;
+        cursor: pointer;
+        position: relative;
+        transition: color 0.15s;
+      }
+      .todo-tab:hover { color: var(--text); }
+      .todo-tab.active {
+        color: var(--accent);
+      }
+      .todo-tab.active::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -2px;
+        height: 2px;
+        background: var(--accent);
+        border-radius: 2px 2px 0 0;
+      }
+      .todo-tab .tab-count {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 10px;
+        background: var(--accent-dim);
+        color: var(--accent);
+        margin-left: 0.4rem;
+        vertical-align: middle;
+      }
+      .sidebar-todo-btn {
+        width: 100%;
+        text-align: left;
+        padding: 0.7rem 1rem;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        background: transparent;
+        color: var(--text);
+        border: none;
+        border-bottom: 1px solid var(--border);
+        border-left: 3px solid transparent;
+        cursor: pointer;
+        transition: background 0.1s;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .sidebar-todo-btn:hover { background: var(--surface-hover); }
+      .sidebar-todo-btn.active {
+        background: var(--accent-dim);
+        border-left-color: var(--accent);
+        color: var(--accent);
+      }
+      .sidebar-todo-icon {
+        font-size: 15px;
+        line-height: 1;
+      }
+
+      /* Jira mention cards */
+      .jira-mentions-section {
+        margin-top: 0.25rem;
+      }
+      .jira-mention-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 3px solid #818cf8;
+        border-radius: 6px;
+        padding: 0.65rem 0.85rem;
+        margin-bottom: 0.5rem;
+      }
+      .jira-mention-card .jira-mention-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.3rem;
+      }
+      .jira-mention-card .jira-key-link {
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .jira-mention-card .jira-key-link:hover { text-decoration: underline; }
+      .jira-mention-card .jira-mention-status {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        background: rgba(129, 140, 248, 0.15);
+        color: #a5b4fc;
+        white-space: nowrap;
+      }
+      .jira-mention-card .jira-mention-summary {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+        line-height: 1.3;
+      }
+      .jira-mention-card .jira-mention-comment {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.4;
+        font-style: italic;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .jira-mention-card .jira-mention-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.35rem;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      /* Feature tracker */
+      .feature-tracker {
+        background: var(--surface);
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .feature-tracker-header {
+        padding: 0.65rem 0.85rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .feature-tracker-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+      .feature-select {
+        width: 100%;
+        padding: 0.4rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .feature-tracker-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.75rem 0.85rem;
+      }
+      .ft-section-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        margin-bottom: 0.4rem;
+        margin-top: 1rem;
+      }
+      .ft-section-label:first-child { margin-top: 0; }
+      .ft-detail-title {
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.35;
+        margin-bottom: 0.15rem;
+      }
+      .ft-detail-title a {
+        color: var(--text);
+        text-decoration: none;
+      }
+      .ft-detail-title a:hover { color: var(--accent); }
+      .ft-detail-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.75rem;
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 0.5rem;
+      }
+      .ft-detail-meta strong { color: var(--text); font-weight: 600; }
+      .feature-status {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        white-space: nowrap;
+        display: inline-block;
+      }
+      .feature-status[data-status="in progress"] {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fcd34d;
+      }
+      .feature-status[data-status="new"], .feature-status[data-status="backlog"] {
+        background: rgba(56, 189, 248, 0.15);
+        color: #7dd3fc;
+      }
+      .feature-status[data-status="closed"], .feature-status[data-status="done"], .feature-status[data-status="resolved"] {
+        background: rgba(74, 222, 128, 0.2);
+        color: #86efac;
+      }
+      .feature-status[data-status="review"] {
+        background: rgba(167, 139, 250, 0.2);
+        color: #c4b5fd;
+      }
+      .feature-progress-bar {
+        width: 100%;
+        height: 6px;
+        background: var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .feature-progress-fill {
+        height: 100%;
+        border-radius: 3px;
+        background: var(--accent);
+        transition: width 0.3s ease;
+      }
+      .ft-progress-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.65rem;
+      }
+      .ft-progress-row .feature-progress-bar { flex: 1; }
+      .ft-progress-pct {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+        min-width: 2.5rem;
+        text-align: right;
+      }
+      .ft-epic-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0;
+        border-bottom: 1px solid rgba(45, 58, 77, 0.5);
+        font-size: 12px;
+      }
+      .ft-epic-row:last-child { border-bottom: none; }
+      .ft-epic-key {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .ft-epic-key a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .ft-epic-key a:hover { text-decoration: underline; }
+      .ft-epic-summary {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .ft-epic-status { flex-shrink: 0; }
+      .ft-whats-next {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.65rem 0.75rem;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--text);
+      }
+      .ft-comment {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.4;
+        font-style: italic;
+        padding: 0.4rem 0;
+      }
+
+      @media (max-width: 900px) {
+        .layout { grid-template-columns: 1fr; }
+        .sidebar, .feature-tracker { display: none; }
+      }
+      @media (min-width: 901px) and (max-width: 1100px) {
+        .layout { grid-template-columns: 220px 1fr; }
+        .feature-tracker { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <h1>Slack Daily Digest</h1>
+        <span class="hint">Serve with <code>npx serve .cursor/skills/daily-digest</code> then open <code>/viewer/</code></span>
+      </header>
+      <div class="layout">
+        <nav class="sidebar">
+          <button type="button" class="sidebar-todo-btn" id="sidebar-todo-btn">
+            <span class="sidebar-todo-icon">&#9745;</span> To Do
+          </button>
+          <div class="sidebar-title">Daily Digests</div>
+          <ul class="sidebar-list" id="sidebar-list"></ul>
+        </nav>
+        <div class="main" id="main-content">
+          <div class="empty-state" id="empty-state">
+            <h3>No digests yet</h3>
+            <p>Run the Slack Daily Digest skill to generate your first digest. It will appear here automatically.</p>
+          </div>
+        </div>
+        <aside class="feature-tracker">
+          <div class="feature-tracker-header">
+            <div class="feature-tracker-title">Feature Tracker</div>
+            <select class="feature-select" id="feature-select">
+              <option value="">Loading...</option>
+            </select>
+          </div>
+          <div class="feature-tracker-scroll" id="feature-tracker-content">
+            <p style="color:var(--muted);font-size:12px">Select a feature above</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <script type="module">
+      function esc(s) {
+        if (s == null) return '';
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      let JIRA_BROWSE = 'https://your-company.atlassian.net/browse/';
+      let MY_USER = '';
+      const LINK_STYLE = 'color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(56,189,248,0.35)';
+      const GH_DEFAULT_REPO = 'opendatahub-io/odh-dashboard';
+
+      async function loadUserConfig() {
+        const paths = [
+          '../../../../user_config.json',
+          '../user_config.json',
+          './user_config.json',
+          '../../../user_config.json',
+        ];
+        for (const p of paths) {
+          try {
+            const res = await fetch(resolveUrl(p));
+            if (!res.ok) continue;
+            const cfg = await res.json();
+            JIRA_BROWSE = (cfg.jira_base_url || 'https://your-company.atlassian.net').replace(/\/+$/, '') + '/browse/';
+            MY_USER = cfg.slack_username || '';
+            if (MY_USER) {
+              console.log('Loaded user_config.json from ' + p + ', MY_USER=' + MY_USER);
+              return;
+            }
+          } catch (e) { /* try next path */ }
+        }
+        console.warn('Could not load user_config.json from any path. MY_USER will be empty — "My Actions" tab may not filter correctly.');
+      }
+
+      function linkify(text) {
+        if (text == null || text === '') return '';
+        const safe = esc(text);
+        return safe.replace(
+          /https:\/\/github\.com\/([\w._-]+\/[\w._-]+)\/(pull|issues)\/(\d+)\b|PR #(\d+)\b|\b([A-Z][A-Z0-9]+-\d+)\b/g,
+          (match, ghRepo, ghType, ghNum, prNum, jiraKey) => {
+            if (ghRepo) {
+              const label = ghRepo + (ghType === 'pull' ? ' PR' : '') + ' #' + ghNum;
+              return '<a href="' + match + '" target="_blank" rel="noopener noreferrer" style="' + LINK_STYLE + '">' + label + '</a>';
+            }
+            if (prNum) {
+              return '<a href="https://github.com/' + GH_DEFAULT_REPO + '/pull/' + prNum + '" target="_blank" rel="noopener noreferrer" style="' + LINK_STYLE + '">PR #' + prNum + '</a>';
+            }
+            if (jiraKey) {
+              return '<a href="' + JIRA_BROWSE + jiraKey + '" target="_blank" rel="noopener noreferrer" style="' + LINK_STYLE + '">' + jiraKey + '</a>';
+            }
+            return match;
+          }
+        );
+      }
+
+      function formatDate(dateStr) {
+        try {
+          const d = new Date(dateStr + 'T00:00:00');
+          return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        } catch { return dateStr; }
+      }
+
+      function ageColor(dateStr) {
+        const now = new Date();
+        const then = new Date(dateStr + 'T00:00:00');
+        const days = Math.max(0, Math.floor((now - then) / 86400000));
+        if (days === 0) return '#38bdf8';
+        if (days <= 2) return '#2dd4bf';
+        if (days <= 4) return '#4ade80';
+        if (days <= 7) return '#fbbf24';
+        if (days <= 14) return '#fb923c';
+        return '#64748b';
+      }
+
+      const DONE_STORE_KEY = 'daily-digest-done-actions';
+
+      function loadDoneActions() {
+        try { return JSON.parse(localStorage.getItem(DONE_STORE_KEY) || '{}'); }
+        catch { return {}; }
+      }
+
+      function saveDoneActions(done) {
+        localStorage.setItem(DONE_STORE_KEY, JSON.stringify(done));
+      }
+
+      function actionKey(a) {
+        return a.date + '::' + a.channel + '::' + (a.action || '').slice(0, 80);
+      }
+
+      function isActionDone(a) {
+        return !!loadDoneActions()[actionKey(a)];
+      }
+
+      function toggleActionDone(a) {
+        const done = loadDoneActions();
+        const key = actionKey(a);
+        if (done[key]) delete done[key]; else done[key] = Date.now();
+        saveDoneActions(done);
+      }
+
+      function resolveUrl(relative) {
+        return new URL(relative, window.location.href).href;
+      }
+
+      function ownerHtml(owner) {
+        if (!owner) return '';
+        const handle = owner.replace(/^@/, '');
+        const slackDmUrl = 'https://redhat-internal.slack.com/app_redirect?channel=' + encodeURIComponent('@' + handle);
+        return '<a class="action-owner" href="' + esc(slackDmUrl) + '" target="_blank" rel="noopener noreferrer" title="DM ' + esc(handle) + ' in Slack">' + esc(owner) + '</a>';
+      }
+
+      const sidebarList = document.getElementById('sidebar-list');
+      const mainContent = document.getElementById('main-content');
+      const todoBtn = document.getElementById('sidebar-todo-btn');
+
+      let manifest = null;
+      let currentDigest = null;
+      let currentDate = null;
+      let currentView = 'digest';
+      let digestCache = new Map();
+      let jiraMentionsCache = null;
+
+      async function fetchJiraMentions() {
+        if (jiraMentionsCache !== null) return jiraMentionsCache;
+        try {
+          const res = await fetch(resolveUrl('../jira_mentions.json'));
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+          jiraMentionsCache = data.mentions || [];
+        } catch {
+          jiraMentionsCache = [];
+        }
+        return jiraMentionsCache;
+      }
+
+      function getMentionsForDate(mentions, date) {
+        return mentions.filter(m => (m.comment_date || '').slice(0, 10) === date);
+      }
+
+      function updateSidebarActive() {
+        todoBtn.classList.toggle('active', currentView === 'todo');
+        sidebarList.querySelectorAll('button[data-date]').forEach(btn => {
+          btn.classList.toggle('active', currentView === 'digest' && btn.dataset.date === currentDate);
+        });
+      }
+
+      function renderSidebar() {
+        if (!manifest || !manifest.digests || manifest.digests.length === 0) {
+          sidebarList.innerHTML = '<li style="padding:1rem;color:var(--muted);font-size:12px">No digests found</li>';
+          return;
+        }
+        sidebarList.innerHTML = manifest.digests.map(d =>
+          '<li><button type="button" data-date="' + esc(d.date) + '">' +
+          '<span class="date-label">' + esc(d.date) + '</span>' +
+          '<span class="date-meta">' + esc(formatDate(d.date)) + '</span>' +
+          '</button></li>'
+        ).join('');
+        updateSidebarActive();
+      }
+
+      function renderDigest(data, externalMentions) {
+        if (!data) {
+          mainContent.innerHTML = '<div class="empty-state"><h3>Failed to load digest</h3></div>';
+          return;
+        }
+        const stats = data.summary_stats || {};
+        let html = '';
+
+        html += '<div class="digest-header">';
+        html += '<h2>' + esc(formatDate(data.date)) + '</h2>';
+        html += '<div class="generated">Generated ' + esc(data.generated_at || '') + '</div>';
+        html += '</div>';
+
+        html += '<div class="stats-bar">';
+        html += '<div class="stat-pill"><span>Channels</span><strong>' + esc(stats.total_channels ?? 0) + '</strong></div>';
+        html += '<div class="stat-pill"><span>Threads</span><strong>' + esc(stats.total_threads ?? 0) + '</strong></div>';
+        html += '<div class="stat-pill"><span>Actions</span><strong>' + esc(stats.total_actions ?? 0) + '</strong></div>';
+        const mentionCountForStats = new Set([
+          ...(data.jira_mentions || []).map(m => (m.issue_key || '') + '::' + (m.comment_date || '').slice(0, 19)),
+          ...(externalMentions || []).map(m => (m.issue_key || '') + '::' + (m.comment_date || '').slice(0, 19))
+        ]).size;
+        html += '<div class="stat-pill"><span>Jira mentions</span><strong style="color:#a5b4fc">' + mentionCountForStats + '</strong></div>';
+        html += '</div>';
+
+        const es = data.executive_summary;
+        if (es) {
+          html += '<details class="exec-summary" open>';
+          html += '<summary><h3>Daily Summary</h3></summary>';
+          html += '<div class="exec-summary-body">';
+          if (es.my_actions && es.my_actions.length > 0) {
+            html += '<div class="exec-summary-section">';
+            html += '<h4 class="today-label">My Actions (' + es.my_actions.length + ')</h4>';
+            html += '<ol>';
+            for (const a of es.my_actions) {
+              html += '<li>';
+              html += '<strong>' + esc(a.action) + '</strong>';
+              if (a.channel) html += ' <span class="exec-channel">in ' + esc(a.channel) + '</span>';
+              if (a.thread_link) html += ' <a href="' + esc(a.thread_link) + '" target="_blank" rel="noopener noreferrer">Open</a>';
+              html += '</li>';
+            }
+            html += '</ol></div>';
+          }
+          if (es.others_actions && es.others_actions.length > 0) {
+            html += '<div class="exec-summary-section">';
+            html += '<h4 class="week-label">Others\' Actions (' + es.others_actions.length + ')</h4>';
+            html += '<ol>';
+            for (const a of es.others_actions) {
+              html += '<li>';
+              html += '<strong>' + esc(a.action) + '</strong>';
+              if (a.owner) html += ' <span class="exec-owner">' + esc(a.owner) + '</span>';
+              if (a.channel) html += ' <span class="exec-channel">in ' + esc(a.channel) + '</span>';
+              if (a.thread_link) html += ' <a href="' + esc(a.thread_link) + '" target="_blank" rel="noopener noreferrer">Open</a>';
+              html += '</li>';
+            }
+            html += '</ol></div>';
+          }
+          if (es.key_highlights && es.key_highlights.length > 0) {
+            html += '<div class="exec-summary-section">';
+            html += '<h4 class="highlights-label">Key Highlights</h4>';
+            html += '<ul>';
+            for (const h of es.key_highlights) {
+              html += '<li>' + linkify(h) + '</li>';
+            }
+            html += '</ul></div>';
+          }
+          html += '</div></details>';
+        }
+
+        const channels = data.channels || [];
+        const digestChannels = channels.map(c => c.channel);
+        const digestOwners = new Set();
+        for (const ch of channels) {
+          for (const t of (ch.threads || [])) {
+            for (const a of (t.actions_needed || [])) {
+              if (a.owner) digestOwners.add(a.owner);
+            }
+          }
+        }
+        const sortedOwners = [...digestOwners].sort();
+
+        html += '<div class="todo-filters">';
+        html += '<div class="filter-group"><label>Source</label><select id="digest-f-channel">';
+        html += '<option value="all">All sources</option>';
+        html += '<option value="all_dms">All DMs</option>';
+        html += '<option value="Jira Mentions">Jira</option>';
+        for (const c of digestChannels) {
+          html += '<option value="' + esc(c) + '">' + esc(c) + '</option>';
+        }
+        html += '</select></div>';
+        html += '<div class="filter-group"><label>Owner</label><select id="digest-f-owner">';
+        html += '<option value="all">Everyone</option>';
+        html += '<option value="me">My actions (@' + MY_USER + ')</option>';
+        html += '<option value="others">Others (not me)</option>';
+        for (const o of sortedOwners) {
+          html += '<option value="' + esc(o) + '">' + esc(o) + '</option>';
+        }
+        html += '</select></div>';
+        html += '</div>';
+
+        if (channels.length === 0) {
+          html += '<div class="empty-state" style="min-height:120px"><p>No activity found for this date.</p></div>';
+        } else {
+          html += '<div id="channels-container">';
+          for (const ch of channels) {
+            const isDm = ch.channel.toLowerCase().startsWith('dm ');
+            const isMentionGroup = ch.channel.toLowerCase().startsWith('mentions (');
+            html += '<div class="channel-section" data-channel="' + esc(ch.channel) + '" data-is-dm="' + (isDm ? 'yes' : 'no') + '" data-source="slack">';
+            html += '<div class="channel-name">' + esc(ch.channel) + '</div>';
+            const threads = ch.threads || [];
+            for (const t of threads) {
+              const hasActions = t.actions_needed && t.actions_needed.length > 0;
+              const owners = hasActions ? t.actions_needed.map(a => (a.owner || '').toLowerCase()).join(',') : '';
+              const participants = (t.participants || []).map(p => p.toLowerCase()).join(',');
+              html += '<div class="thread-card" data-has-actions="' + (hasActions ? 'yes' : 'no') + '" data-owners="' + esc(owners) + '" data-participants="' + esc(participants) + '">';
+              html += '<div class="thread-top">';
+              html += '<span class="thread-participants">' + esc((t.participants || []).join(', ')) + '</span>';
+              if (t.thread_link) {
+                html += '<a class="thread-link" href="' + esc(t.thread_link) + '" target="_blank" rel="noopener noreferrer">Open in Slack</a>';
+              }
+              html += '</div>';
+              html += '<div class="thread-summary">' + linkify(t.summary) + '</div>';
+              if (hasActions) {
+                html += '<ul class="actions-list">';
+                for (const a of t.actions_needed) {
+                  const dKey = esc(data.date + '::' + ch.channel + '::' + (a.action || '').slice(0, 80));
+                  const done = !!loadDoneActions()[data.date + '::' + ch.channel + '::' + (a.action || '').slice(0, 80)];
+                  const doneClass = done ? ' action-done' : '';
+                  const checked = done ? ' checked' : '';
+                  const color = done ? '#475569' : (isMentionGroup ? '#a5b4fc' : ageColor(data.date));
+                  const label = isMentionGroup ? 'Tagged' : 'Action';
+                  html += '<li class="action-item' + doneClass + '" style="border-left-color:' + color + '" data-action-key="' + dKey + '">';
+                  html += '<input type="checkbox" class="action-checkbox digest-action-cb"' + checked + '>';
+                  html += '<span class="action-badge" style="background:' + color + '22;color:' + color + '">' + esc(label) + '</span>';
+                  html += '<span class="action-text">' + linkify(a.action) + '</span>';
+                  html += ownerHtml(a.owner);
+                  html += '</li>';
+                }
+                html += '</ul>';
+              } else {
+                html += '<div class="no-actions">No actions needed</div>';
+              }
+              html += '</div>';
+            }
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+
+        const seenKeys = new Set();
+        const mentions = [];
+        for (const m of (data.jira_mentions || [])) {
+          const k = (m.issue_key || '') + '::' + (m.comment_date || '').slice(0, 19);
+          if (!seenKeys.has(k)) { seenKeys.add(k); mentions.push(m); }
+        }
+        for (const m of (externalMentions || [])) {
+          const k = (m.issue_key || '') + '::' + (m.comment_date || '').slice(0, 19);
+          if (!seenKeys.has(k)) { seenKeys.add(k); mentions.push(m); }
+        }
+        if (mentions.length > 0) {
+          html += '<div class="channel-section jira-mentions-section" data-channel="Jira Mentions" data-is-dm="no" data-source="jira">';
+          html += '<div class="channel-name">Jira Mentions (' + mentions.length + ')</div>';
+          for (const m of mentions) {
+            html += '<div class="jira-mention-card thread-card" data-has-actions="yes" data-has-today="no" data-owners="" data-participants="' + esc(MY_USER) + '" data-urgencies="" data-source="jira">';
+            html += '<div class="jira-mention-top">';
+            html += '<a class="jira-key-link" href="' + esc(m.issue_link) + '" target="_blank" rel="noopener noreferrer">' + esc(m.issue_key) + '</a>';
+            html += '<span class="jira-mention-status">' + esc(m.issue_status) + '</span>';
+            html += '</div>';
+            html += '<div class="jira-mention-summary">' + linkify(m.issue_summary) + '</div>';
+            html += '<div class="jira-mention-comment">' + linkify(m.comment_text) + '</div>';
+            html += '<div class="jira-mention-meta">';
+            html += '<span>' + esc(m.comment_author) + '</span>';
+            html += '<span>' + esc((m.comment_date || '').slice(0, 10)) + '</span>';
+            html += '</div>';
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+
+        mainContent.innerHTML = html;
+
+        const dfCh = document.getElementById('digest-f-channel');
+        const dfOw = document.getElementById('digest-f-owner');
+        if (dfCh && dfOw) {
+          const run = () => applyDigestFilters(dfCh.value, dfOw.value);
+          dfCh.addEventListener('change', run);
+          dfOw.addEventListener('change', run);
+        }
+
+        mainContent.addEventListener('change', (e) => {
+          const cb = e.target.closest('.digest-action-cb');
+          if (!cb) return;
+          const li = cb.closest('.action-item');
+          if (!li) return;
+          const key = li.dataset.actionKey;
+          const done = loadDoneActions();
+          if (done[key]) delete done[key]; else done[key] = Date.now();
+          saveDoneActions(done);
+          const isDone = !!done[key];
+          li.classList.toggle('action-done', isDone);
+          const isMG = li.closest('.channel-section')?.dataset.channel?.toLowerCase().startsWith('mentions (');
+          const dateMatch = key.match(/^(\d{4}-\d{2}-\d{2})::/);
+          const dateStr = dateMatch ? dateMatch[1] : '';
+          const color = isDone ? '#475569' : (isMG ? '#a5b4fc' : ageColor(dateStr));
+          li.style.borderLeftColor = color;
+          const badge = li.querySelector('.action-badge');
+          if (badge) {
+            badge.style.background = color + '22';
+            badge.style.color = color;
+          }
+        });
+      }
+
+      function applyDigestFilters(channelFilter, ownerFilter) {
+        const sections = mainContent.querySelectorAll('.channel-section');
+        sections.forEach(sec => {
+          const ch = sec.dataset.channel || '';
+          const isDm = sec.dataset.isDm === 'yes';
+
+          let channelVisible = true;
+          if (channelFilter === 'all_dms') channelVisible = isDm;
+          else if (channelFilter !== 'all') channelVisible = ch === channelFilter;
+
+          if (!channelVisible) { sec.style.display = 'none'; return; }
+
+          const cards = sec.querySelectorAll('.thread-card');
+          let anyVisible = false;
+          cards.forEach(card => {
+            const owners = (card.dataset.owners || '').toLowerCase();
+            const participants = (card.dataset.participants || '').toLowerCase();
+            const hasActions = card.dataset.hasActions === 'yes';
+
+            let ownerOk = true;
+            if (ownerFilter === 'me') ownerOk = owners.includes(MY_USER) || participants.includes(MY_USER);
+            else if (ownerFilter === 'others') ownerOk = hasActions && !owners.includes(MY_USER);
+            else if (ownerFilter !== 'all') ownerOk = owners.includes(ownerFilter.toLowerCase().replace(/^@/, ''));
+
+            card.style.display = ownerOk ? '' : 'none';
+            if (ownerOk) anyVisible = true;
+          });
+          sec.style.display = anyVisible ? '' : 'none';
+        });
+      }
+
+      async function fetchDigest(date) {
+        if (digestCache.has(date)) return digestCache.get(date);
+        const entry = (manifest.digests || []).find(d => d.date === date);
+        if (!entry) return null;
+        try {
+          const res = await fetch(resolveUrl('../digests/' + entry.file));
+          if (!res.ok) return null;
+          const data = await res.json();
+          digestCache.set(date, data);
+          return data;
+        } catch { return null; }
+      }
+
+      function jiraMentionKey(m) {
+        return (m.issue_key || '') + '::' + (m.comment_date || '').slice(0, 19);
+      }
+
+      function collectAllActions(digests, allJiraMentions, dateFrom, dateTo) {
+        const actions = [];
+        const seenJira = new Set();
+
+        for (const digest of digests) {
+          for (const ch of (digest.channels || [])) {
+            const isDm = ch.channel.toLowerCase().startsWith('dm ');
+            const tagged = ch.channel.toLowerCase().startsWith('mentions (');
+            for (const t of (ch.threads || [])) {
+              for (const a of (t.actions_needed || [])) {
+                actions.push({
+                  source: 'slack',
+                  action: a.action,
+                  owner: a.owner || '',
+                  channel: ch.channel,
+                  isDm,
+                  tagged,
+                  date: digest.date,
+                  thread_link: t.thread_link || '',
+                  summary: t.summary || '',
+                  participants: t.participants || [],
+                });
+              }
+            }
+          }
+          for (const m of (digest.jira_mentions || [])) {
+            const key = jiraMentionKey(m);
+            if (seenJira.has(key)) continue;
+            seenJira.add(key);
+            actions.push({
+              source: 'jira',
+              action: m.comment_text || '',
+              owner: m.comment_author || '',
+              channel: 'Jira',
+              isDm: false,
+              tagged: false,
+              date: digest.date,
+              thread_link: m.issue_link || '',
+              summary: m.issue_summary || '',
+              participants: [],
+              issue_key: m.issue_key || '',
+              issue_status: m.issue_status || '',
+            });
+          }
+        }
+        for (const m of (allJiraMentions || [])) {
+          const mDate = (m.comment_date || '').slice(0, 10);
+          if (dateFrom && mDate < dateFrom) continue;
+          if (dateTo && mDate > dateTo) continue;
+          const key = jiraMentionKey(m);
+          if (seenJira.has(key)) continue;
+          seenJira.add(key);
+          actions.push({
+            source: 'jira',
+            action: m.comment_text || '',
+            owner: m.comment_author || '',
+            channel: 'Jira',
+            isDm: false,
+            tagged: false,
+            date: mDate,
+            thread_link: m.issue_link || '',
+            summary: m.issue_summary || '',
+            participants: [],
+            issue_key: m.issue_key || '',
+            issue_status: m.issue_status || '',
+          });
+        }
+        return actions;
+      }
+
+      function getUniqueChannels(actions) {
+        const set = new Set();
+        for (const a of actions) set.add(a.channel);
+        return [...set].sort();
+      }
+
+      function getUniqueOwners(actions) {
+        const set = new Set();
+        for (const a of actions) if (a.owner) set.add(a.owner);
+        return [...set].sort();
+      }
+
+      function periodToDateRange(period) {
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+        const d = new Date(today);
+        if (period === '1') { d.setDate(d.getDate() - 1); }
+        else if (period === '7') { d.setDate(d.getDate() - 7); }
+        else { d.setDate(d.getDate() - 14); }
+        return { dateFrom: d.toISOString().slice(0, 10), dateTo: todayStr };
+      }
+
+      function renderTodoFilters(allActions, period, filters) {
+        const channels = getUniqueChannels(allActions);
+
+        let html = '<div class="todo-filters">';
+        html += '<div class="filter-group"><label>Period</label><select id="todo-period">';
+        html += '<option value="1"' + (period === '1' ? ' selected' : '') + '>Yesterday</option>';
+        html += '<option value="7"' + (period === '7' ? ' selected' : '') + '>Last 7 days</option>';
+        html += '<option value="14"' + (period === '14' ? ' selected' : '') + '>Last 14 days</option>';
+        html += '</select></div>';
+
+        html += '<div class="filter-group"><label>Source</label><select id="todo-channel">';
+        html += '<option value="all"' + (filters.channel === 'all' ? ' selected' : '') + '>All sources</option>';
+        html += '<option value="all_dms"' + (filters.channel === 'all_dms' ? ' selected' : '') + '>All DMs</option>';
+        html += '<option value="Jira"' + (filters.channel === 'Jira' ? ' selected' : '') + '>Jira</option>';
+        for (const c of channels) {
+          if (c === 'Jira') continue;
+          html += '<option value="' + esc(c) + '"' + (filters.channel === c ? ' selected' : '') + '>' + esc(c) + '</option>';
+        }
+        html += '</select></div>';
+
+        html += '</div>';
+        return html;
+      }
+
+      function filterActions(actions, filters) {
+        return actions.filter(a => {
+          if (filters.channel === 'all_dms') {
+            if (!a.isDm) return false;
+          } else if (filters.channel && filters.channel !== 'all') {
+            if (a.channel !== filters.channel) return false;
+          }
+          return true;
+        });
+      }
+
+      let _renderedActions = [];
+
+      function renderActionRows(actions) {
+        _renderedActions = actions;
+        if (actions.length === 0) {
+          return '<div class="empty-state" style="min-height:120px"><p>No actions match the current filters.</p></div>';
+        }
+        const slackCount = actions.filter(a => a.source === 'slack').length;
+        const jiraCount = actions.filter(a => a.source === 'jira').length;
+        let html = '<div class="todo-count">' + actions.length + ' item' + (actions.length !== 1 ? 's' : '') + ' found';
+        html += ' <span style="color:var(--text-secondary);font-size:0.85em">(' + slackCount + ' Slack, ' + jiraCount + ' Jira)</span></div>';
+        for (let i = 0; i < actions.length; i++) {
+          const a = actions[i];
+          const done = isActionDone(a);
+          const doneClass = done ? ' action-done' : '';
+          const checked = done ? ' checked' : '';
+          if (a.source === 'jira') {
+            html += '<div class="todo-action-row todo-jira-row jira' + doneClass + '">';
+            html += '<input type="checkbox" class="action-checkbox" data-action-idx="' + i + '"' + checked + '>';
+            html += '<span class="action-badge jira">Action</span>';
+            html += '<div class="todo-action-body">';
+            if (a.issue_key) {
+              html += '<div style="margin-bottom:4px"><a class="jira-key-link" href="' + JIRA_BROWSE + esc(a.issue_key) + '" target="_blank" rel="noopener noreferrer" style="font-weight:600;color:#9b59b6">' + esc(a.issue_key) + '</a>';
+              if (a.issue_status) html += ' <span style="font-size:0.8em;padding:2px 8px;border-radius:10px;background:rgba(138,43,226,0.1);color:#9b59b6">' + esc(a.issue_status) + '</span>';
+              html += '</div>';
+            }
+            html += '<div class="todo-action-text" style="font-weight:500">' + esc(a.summary) + '</div>';
+            html += '<div class="todo-action-text" style="font-size:0.88em;color:var(--text-secondary);margin-top:2px">' + linkify(a.action) + '</div>';
+            html += '<div class="todo-action-meta">';
+            html += '<span style="color:#9b59b6">By ' + esc(a.owner) + '</span>';
+            html += '<span>' + esc(a.date) + '</span>';
+            if (a.thread_link) {
+              html += '<a href="' + esc(a.thread_link) + '" target="_blank" rel="noopener noreferrer">Open in Jira</a>';
+            }
+            html += '</div></div></div>';
+          } else {
+            const color = done ? '#475569' : (a.tagged ? '#a5b4fc' : ageColor(a.date));
+            const rowClass = a.tagged ? 'todo-action-row tagged' : 'todo-action-row';
+            const label = a.tagged ? 'Tagged' : 'Action';
+            html += '<div class="' + rowClass + doneClass + '" style="border-left-color:' + color + '">';
+            html += '<input type="checkbox" class="action-checkbox" data-action-idx="' + i + '"' + checked + '>';
+            html += '<span class="action-badge" style="background:' + color + '22;color:' + color + '">' + esc(label) + '</span>';
+            html += '<div class="todo-action-body">';
+            html += '<div class="todo-action-text">' + linkify(a.action) + '</div>';
+            html += '<div class="todo-action-meta">';
+            html += ownerHtml(a.owner);
+            html += '<span>' + esc(a.channel) + '</span>';
+            html += '<span>' + esc(a.date) + '</span>';
+            if (a.thread_link) {
+              html += '<a href="' + esc(a.thread_link) + '" target="_blank" rel="noopener noreferrer">Open in Slack</a>';
+            }
+            html += '</div></div></div>';
+          }
+        }
+        return html;
+      }
+
+      let todoState = { period: '7', tab: 'mine', allActions: [], filters: { channel: 'all' } };
+
+      function isMyAction(a) {
+        const ch = (a.channel || '').toLowerCase();
+        if (ch.startsWith('self')) return true;
+        if (a.tagged) return true;
+        if (!MY_USER) return false;
+        const u = MY_USER.toLowerCase();
+        if (a.owner && a.owner.toLowerCase().includes(u)) return true;
+        if (a.isDm && a.participants && a.participants.some(p => p.toLowerCase().includes(u))) return true;
+        return false;
+      }
+
+      function splitByOwner(actions) {
+        const mine = [];
+        const others = [];
+        for (const a of actions) {
+          if (isMyAction(a)) {
+            mine.push(a);
+          } else {
+            others.push(a);
+          }
+        }
+        return { mine, others };
+      }
+
+      function renderTodoTab() {
+        const { mine, others } = splitByOwner(todoState.allActions);
+        const tabActions = todoState.tab === 'mine' ? mine : others;
+        const filtered = filterActions(tabActions, todoState.filters);
+
+        const countDone = filtered.filter(a => isActionDone(a)).length;
+        const countRemaining = filtered.length - countDone;
+
+        let html = '';
+        html += '<div class="stats-bar">';
+        html += '<div class="stat-pill"><span>To Do</span><strong>' + countRemaining + '</strong></div>';
+        html += '<div class="stat-pill"><span>Done</span><strong style="color:#475569">' + countDone + '</strong></div>';
+        html += '</div>';
+        html += renderActionRows(filtered);
+
+        document.getElementById('todo-tab-content').innerHTML = html;
+
+        const { mine: mAll, others: oAll } = splitByOwner(todoState.allActions);
+        const mRem = mAll.filter(a => !isActionDone(a)).length;
+        const oRem = oAll.filter(a => !isActionDone(a)).length;
+        document.querySelectorAll('.todo-tab').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.tab === todoState.tab);
+          const countEl = btn.querySelector('.tab-count');
+          if (countEl) {
+            countEl.textContent = btn.dataset.tab === 'mine' ? mRem : oRem;
+          }
+        });
+      }
+
+      async function openTodo(period, filters) {
+        currentView = 'todo';
+        currentDate = null;
+        updateSidebarActive();
+
+        period = period || todoState.period || '7';
+        filters = filters || todoState.filters || { channel: 'all' };
+        const { dateFrom, dateTo } = periodToDateRange(period);
+
+        mainContent.innerHTML = '<div class="todo-header"><h2>To Do</h2><div class="todo-subtitle">Loading actions...</div></div>';
+
+        const datesInRange = (manifest.digests || [])
+          .map(d => d.date)
+          .filter(d => d >= dateFrom && d <= dateTo)
+          .sort();
+
+        const digests = (await Promise.all(datesInRange.map(fetchDigest))).filter(Boolean);
+        const allJiraMentions = await fetchJiraMentions();
+        const allActions = collectAllActions(digests, allJiraMentions, dateFrom, dateTo);
+
+        todoState = { period, tab: todoState.tab || 'mine', allActions, filters };
+
+        const { mine, others } = splitByOwner(allActions);
+
+        let html = '<div class="todo-header"><h2>To Do</h2>';
+        const slackTotal = allActions.filter(a => a.source === 'slack').length;
+        const jiraTotal = allActions.filter(a => a.source === 'jira').length;
+        html += '<div class="todo-subtitle">' + datesInRange.length + ' digest(s) loaded &middot; ' + allActions.length + ' total items (' + slackTotal + ' Slack, ' + jiraTotal + ' Jira)</div></div>';
+
+        html += '<div class="todo-tabs">';
+        const mineRemaining = mine.filter(a => !isActionDone(a)).length;
+        const othersRemaining = others.filter(a => !isActionDone(a)).length;
+        html += '<button type="button" class="todo-tab' + (todoState.tab === 'mine' ? ' active' : '') + '" data-tab="mine">My Actions<span class="tab-count">' + mineRemaining + '</span></button>';
+        html += '<button type="button" class="todo-tab' + (todoState.tab === 'watch' ? ' active' : '') + '" data-tab="watch">To Watch<span class="tab-count">' + othersRemaining + '</span></button>';
+        html += '</div>';
+
+        html += renderTodoFilters(allActions, period, filters);
+        html += '<div id="todo-tab-content"></div>';
+        mainContent.innerHTML = html;
+
+        renderTodoTab();
+
+        document.getElementById('todo-tab-content').addEventListener('change', (e) => {
+          const cb = e.target.closest('.action-checkbox');
+          if (!cb) return;
+          const idx = parseInt(cb.dataset.actionIdx, 10);
+          const a = _renderedActions[idx];
+          if (a) {
+            toggleActionDone(a);
+            renderTodoTab();
+          }
+        });
+
+        mainContent.querySelector('.todo-tabs').addEventListener('click', (e) => {
+          const btn = e.target.closest('.todo-tab');
+          if (!btn) return;
+          todoState.tab = btn.dataset.tab;
+          renderTodoTab();
+        });
+
+        const pe = document.getElementById('todo-period');
+        const ch = document.getElementById('todo-channel');
+
+        function onPeriodChange() {
+          openTodo(pe.value, { channel: ch.value });
+        }
+        function onFilterChange() {
+          todoState.filters = { channel: ch.value };
+          renderTodoTab();
+        }
+
+        pe.addEventListener('change', onPeriodChange);
+        ch.addEventListener('change', onFilterChange);
+      }
+
+      async function loadDigest(date) {
+        currentView = 'digest';
+        currentDate = date;
+        updateSidebarActive();
+
+        const allMentions = await fetchJiraMentions();
+        const dateMentions = getMentionsForDate(allMentions, date);
+
+        if (digestCache.has(date)) {
+          currentDigest = digestCache.get(date);
+          renderDigest(currentDigest, dateMentions);
+          return;
+        }
+
+        mainContent.innerHTML = '<div class="empty-state"><p>Loading digest for ' + esc(date) + '...</p></div>';
+
+        const entry = manifest.digests.find(d => d.date === date);
+        if (!entry) {
+          mainContent.innerHTML = '<div class="empty-state"><h3>Digest not found</h3></div>';
+          return;
+        }
+
+        try {
+          const res = await fetch(resolveUrl('../digests/' + entry.file));
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+          digestCache.set(date, data);
+          currentDigest = data;
+          renderDigest(data, dateMentions);
+        } catch (e) {
+          mainContent.innerHTML = '<div class="empty-state"><h3 class="error">Failed to load digest</h3><p>' + esc(e.message) + '</p></div>';
+        }
+      }
+
+      async function init() {
+        await loadUserConfig();
+        try {
+          const res = await fetch(resolveUrl('./digests-manifest.json'));
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          manifest = await res.json();
+        } catch (e) {
+          mainContent.innerHTML = '<div class="empty-state"><h3>No digests available</h3><p>Run the Slack Daily Digest skill to generate your first digest, then refresh this page.</p><p class="error" style="font-size:11px;margin-top:0.5rem">' + esc(e.message) + '</p></div>';
+          return;
+        }
+
+        if (!manifest.digests || manifest.digests.length === 0) {
+          renderSidebar();
+          return;
+        }
+
+        renderSidebar();
+        await openTodo();
+      }
+
+      todoBtn.addEventListener('click', () => openTodo(todoState.period, todoState.filters));
+
+      sidebarList.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-date]');
+        if (!btn) return;
+        loadDigest(btn.dataset.date);
+      });
+
+      const featureTrackerEl = document.getElementById('feature-tracker-content');
+      const featureSelectEl = document.getElementById('feature-select');
+      let featuresData = [];
+
+      function renderFeatureDetail(f) {
+        const statusLower = (f.status || '').toLowerCase();
+        const pct = f.progress != null ? f.progress : 0;
+        const jiraUrl = JIRA_BROWSE + f.key;
+        const epics = f.epics || [];
+        const doneCount = epics.filter(e => ['closed', 'done', 'resolved'].includes((e.status || '').toLowerCase())).length;
+        const inProgressCount = epics.filter(e => (e.status || '').toLowerCase() === 'in progress').length;
+        const todoCount = epics.length - doneCount - inProgressCount;
+
+        let html = '';
+
+        html += '<div class="ft-section-label">Overview</div>';
+        html += '<div class="ft-detail-title"><a href="' + esc(jiraUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(f.summary) + '</a></div>';
+        html += '<div class="ft-detail-meta">';
+        html += '<span><span class="feature-status" data-status="' + esc(statusLower) + '">' + esc(f.status || '—') + '</span></span>';
+        if (f.assignee) html += '<span>Owner: <strong>' + esc(f.assignee) + '</strong></span>';
+        if (f.target_version) html += '<span>Target: <strong>' + esc(f.target_version) + '</strong></span>';
+        html += '</div>';
+
+        html += '<div class="ft-progress-row">';
+        html += '<div class="feature-progress-bar"><div class="feature-progress-fill" style="width:' + pct + '%"></div></div>';
+        html += '<span class="ft-progress-pct">' + pct + '%</span>';
+        html += '</div>';
+
+        html += '<div class="ft-detail-meta" style="margin-top:-0.25rem">';
+        html += '<span style="color:#86efac">' + doneCount + ' done</span>';
+        html += '<span style="color:#fcd34d">' + inProgressCount + ' in progress</span>';
+        html += '<span style="color:#7dd3fc">' + todoCount + ' to do</span>';
+        html += '</div>';
+
+        if (f.last_comment) {
+          html += '<div class="ft-comment">"' + esc(f.last_comment) + '"</div>';
+        }
+
+        if (epics.length > 0) {
+          html += '<div class="ft-section-label">Epics (' + epics.length + ')</div>';
+          const statusOrder = { 'in progress': 0, 'new': 1, 'backlog': 2, 'closed': 3, 'done': 3, 'resolved': 3 };
+          const sorted = [...epics].sort((a, b) => {
+            const sa = statusOrder[(a.status || '').toLowerCase()] ?? 1;
+            const sb = statusOrder[(b.status || '').toLowerCase()] ?? 1;
+            return sa - sb;
+          });
+          for (const e of sorted) {
+            const eStatus = (e.status || '').toLowerCase();
+            html += '<div class="ft-epic-row">';
+            html += '<span class="ft-epic-key"><a href="' + esc(JIRA_BROWSE + e.key) + '" target="_blank" rel="noopener noreferrer">' + esc(e.key) + '</a></span>';
+            html += '<span class="ft-epic-summary" title="' + esc(e.summary) + '">' + esc(e.summary) + '</span>';
+            html += '<span class="ft-epic-status"><span class="feature-status" data-status="' + esc(eStatus) + '">' + esc(e.status) + '</span></span>';
+            html += '</div>';
+          }
+        }
+
+        if (f.whats_next) {
+          html += '<div class="ft-section-label">What\'s Next</div>';
+          html += '<div class="ft-whats-next">' + linkify(f.whats_next) + '</div>';
+        }
+
+        return html;
+      }
+
+      function onFeatureSelect() {
+        const idx = parseInt(featureSelectEl.value, 10);
+        if (isNaN(idx) || !featuresData[idx]) {
+          featureTrackerEl.innerHTML = '<p style="color:var(--muted);font-size:12px">Select a feature above</p>';
+          return;
+        }
+        featureTrackerEl.innerHTML = renderFeatureDetail(featuresData[idx]);
+      }
+
+      async function loadFeatureTracker() {
+        try {
+          const res = await fetch(resolveUrl('../active_features.json'));
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+          featuresData = data.features || [];
+          if (featuresData.length === 0) {
+            featureSelectEl.innerHTML = '<option value="">No features configured</option>';
+            featureTrackerEl.innerHTML = '';
+            return;
+          }
+          featureSelectEl.innerHTML = featuresData.map((f, i) => {
+            const pct = f.progress != null ? f.progress : 0;
+            const done = (f.status || '').toLowerCase() === 'closed';
+            const label = f.key + ' — ' + (f.summary.length > 35 ? f.summary.slice(0, 35) + '...' : f.summary) + ' (' + pct + '%)';
+            return '<option value="' + i + '"' + (done ? ' style="color:var(--muted)"' : '') + '>' + esc(label) + '</option>';
+          }).join('');
+          featureSelectEl.addEventListener('change', onFeatureSelect);
+          onFeatureSelect();
+        } catch (e) {
+          featureSelectEl.innerHTML = '<option value="">Error loading</option>';
+          featureTrackerEl.innerHTML = '<p style="color:var(--muted);font-size:12px">Could not load features. ' + esc(e.message) + '</p>';
+        }
+      }
+
+      init();
+      loadFeatureTracker();
+    </script>
+  </body>
+</html>

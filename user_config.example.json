@@ -1,0 +1,7 @@
+{
+  "slack_username": "your-slack-username",
+  "jira_display_name": "Your Full Name",
+  "jira_username": "your-jira-username",
+  "slack_domain": "your-company.enterprise.slack.com",
+  "jira_base_url": "https://your-company.atlassian.net"
+}

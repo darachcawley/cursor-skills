@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "atlassian": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["mcp-atlassian"],
+      "env": {
+        "JIRA_URL": "",
+        "JIRA_USERNAME": "",
+        "JIRA_API_TOKEN": "",
+        "JIRA_SSL_VERIFY": "true"
+      }
+    },
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "slack-mcp-server"],
+      "env": {
+        "SLACK_MCP_XOXC_TOKEN": "",
+        "SLACK_MCP_XOXD_TOKEN": "",
+        "SLACK_MCP_CUSTOM_TLS": "1"
+      }
+    }
+  }
+}

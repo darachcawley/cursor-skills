@@ -1,0 +1,10 @@
+{
+  "channels": [
+    "#your-team-channel",
+    "#your-working-group"
+  ],
+  "mention_groups": [
+    "@your-usergroup"
+  ],
+  "include_dms": true
+}

@@ -1,0 +1,9 @@
+# Auto-generated output — do not commit personal data
+digests/
+active_features.json
+jira_mentions.json
+viewer/digests-manifest.json
+
+# User-specific config (created from .example files)
+slack_channels_config.json
+feature_watchlist.json
