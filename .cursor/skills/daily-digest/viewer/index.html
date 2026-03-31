@@ -1525,6 +1525,7 @@
         html += '<div class="stat-pill"><span>To Do</span><strong>' + countRemaining + '</strong></div>';
         html += '<div class="stat-pill"><span>Done</span><strong style="color:#475569">' + countDone + '</strong></div>';
         html += '</div>';
+        filtered.sort((a, b) => isActionDone(a) - isActionDone(b));
         html += renderActionRows(filtered);
 
         document.getElementById('todo-tab-content').innerHTML = html;
