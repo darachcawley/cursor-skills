@@ -842,7 +842,7 @@
   <body>
     <div class="app">
       <header>
-        <h1>Slack Daily Digest</h1>
+        <h1>Daily Digest</h1>
         <span class="hint">Serve with <code>npx serve .cursor/skills/daily-digest</code> then open <code>/viewer/</code></span>
       </header>
       <div class="layout">
@@ -856,7 +856,7 @@
         <div class="main" id="main-content">
           <div class="empty-state" id="empty-state">
             <h3>No digests yet</h3>
-            <p>Run the Slack Daily Digest skill to generate your first digest. It will appear here automatically.</p>
+            <p>Run the Daily Digest skill to generate your first digest. It will appear here automatically.</p>
           </div>
         </div>
         <aside class="feature-tracker">
@@ -1652,7 +1652,7 @@
           if (!res.ok) throw new Error('HTTP ' + res.status);
           manifest = await res.json();
         } catch (e) {
-          mainContent.innerHTML = '<div class="empty-state"><h3>No digests available</h3><p>Run the Slack Daily Digest skill to generate your first digest, then refresh this page.</p><p class="error" style="font-size:11px;margin-top:0.5rem">' + esc(e.message) + '</p></div>';
+          mainContent.innerHTML = '<div class="empty-state"><h3>No digests available</h3><p>Run the Daily Digest skill to generate your first digest, then refresh this page.</p><p class="error" style="font-size:11px;margin-top:0.5rem">' + esc(e.message) + '</p></div>';
           return;
         }
 

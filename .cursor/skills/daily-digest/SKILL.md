@@ -41,11 +41,14 @@ Read `user_config.json` (in the **workspace root**) to get the user's identity a
   "jira_display_name": "Your Full Name",
   "jira_username": "your-jira-username",
   "slack_domain": "your-company.enterprise.slack.com",
+  "slack_dm_domain": "your-company-internal.slack.com",
   "jira_base_url": "https://your-company.atlassian.net"
 }
 ```
 
-Use `{slack_username}`, `{jira_display_name}`, `{jira_username}`, `{slack_domain}`, and `{jira_base_url}` as placeholders in the steps below. Substitute the actual values from the workspace-root `user_config.json` at runtime.
+Use `{slack_username}`, `{jira_display_name}`, `{jira_username}`, `{slack_domain}`, `{slack_dm_domain}`, and `{jira_base_url}` as placeholders in the steps below. Substitute the actual values from the workspace-root `user_config.json` at runtime.
+
+**Note:** Some Slack workspaces use different domains for channel links vs DM links (e.g., `redhat.enterprise.slack.com` for channels but `redhat-internal.slack.com` for DMs). Use `{slack_dm_domain}` for all DM thread links (self-DMs and DMs with others). If `slack_dm_domain` is not set, fall back to `{slack_domain}`.
 
 ### Step 1 — Load channel configuration
 
@@ -60,6 +63,32 @@ Read `slack_channels_config.json` (in this skill's directory) to get the list of
 ```
 
 To add or remove channels or mention groups, edit `slack_channels_config.json` directly.
+
+### Step 1b — Resolve channel IDs
+
+Slack deep links require **channel IDs** (e.g., `C09S4J8TV5Y`), not channel names. Before fetching messages, use `channels_list` on `user-slack` to get a mapping of channel names to IDs:
+
+```
+server: user-slack
+tool: channels_list
+args:
+  channel_types: "public_channel,private_channel"
+  limit: 999
+```
+
+Also fetch IM (DM) channel IDs so self-DM and DM thread links work:
+
+```
+server: user-slack
+tool: channels_list
+args:
+  channel_types: "im"
+  limit: 50
+```
+
+The self-DM channel is the IM entry named `@{slack_username}` (e.g., `D06BXAVPNA2` for `@dcawley`).
+
+Build a lookup map from channel name → channel ID. Use these IDs in **all** `thread_link` fields throughout the digest — including self-DMs and DMs with others. Links using channel names or user IDs instead of channel IDs will not work in Slack.
 
 ### Step 2 — Fetch channel messages for the target date
 
@@ -163,7 +192,7 @@ For each thread or standalone message, produce:
 2. **actions_needed** — List of action items extracted from the conversation (empty array if none)
 3. **action_owner** — Who likely needs to perform each action (use Slack display names)
 4. **urgency** — One of: `"today"`, `"this_week"`, `"later"`
-5. **thread_link** — Slack deep link to the thread: `https://{slack_domain}/archives/{channel_id}/p{thread_ts_no_dot}`
+5. **thread_link** — Slack deep link to the thread: `https://{domain}/archives/{channel_id}/p{thread_ts_no_dot}` — **IMPORTANT**: `{channel_id}` must be the Slack channel ID (e.g., `C09S4J8TV5Y`) resolved in Step 1b, NOT the channel name. For DMs (channel IDs starting with `D`), use `{slack_dm_domain}` as the domain. For channels (IDs starting with `C`), use `{slack_domain}`. Links with channel names will not open in Slack.
 
 #### Urgency classification rules
 
