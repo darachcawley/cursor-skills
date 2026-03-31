@@ -883,10 +883,11 @@
           .replace(/"/g, '&quot;');
       }
 
-      let JIRA_BROWSE = 'https://your-company.atlassian.net/browse/';
+      let JIRA_BROWSE = '';
       let MY_USER = '';
+      let SLACK_DM_DOMAIN = '';
       const LINK_STYLE = 'color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(56,189,248,0.35)';
-      const GH_DEFAULT_REPO = 'opendatahub-io/odh-dashboard';
+      let GH_DEFAULT_REPO = '';
 
       async function loadUserConfig() {
         const paths = [
@@ -900,7 +901,10 @@
             const res = await fetch(resolveUrl(p));
             if (!res.ok) continue;
             const cfg = await res.json();
-            JIRA_BROWSE = (cfg.jira_base_url || 'https://your-company.atlassian.net').replace(/\/+$/, '') + '/browse/';
+            JIRA_BROWSE = (cfg.jira_base_url || '').replace(/\/+$/, '');
+            if (JIRA_BROWSE) JIRA_BROWSE += '/browse/';
+            SLACK_DM_DOMAIN = cfg.slack_dm_domain || cfg.slack_domain || '';
+            GH_DEFAULT_REPO = cfg.gh_default_repo || '';
             MY_USER = cfg.slack_username || '';
             if (MY_USER) {
               console.log('Loaded user_config.json from ' + p + ', MY_USER=' + MY_USER);
@@ -984,7 +988,8 @@
       function ownerHtml(owner) {
         if (!owner) return '';
         const handle = owner.replace(/^@/, '');
-        const slackDmUrl = 'https://redhat-internal.slack.com/app_redirect?channel=' + encodeURIComponent('@' + handle);
+        if (!SLACK_DM_DOMAIN) return '<span class="action-owner">' + esc(owner) + '</span>';
+        const slackDmUrl = 'https://' + SLACK_DM_DOMAIN + '/app_redirect?channel=' + encodeURIComponent('@' + handle);
         return '<a class="action-owner" href="' + esc(slackDmUrl) + '" target="_blank" rel="noopener noreferrer" title="DM ' + esc(handle) + ' in Slack">' + esc(owner) + '</a>';
       }
 

@@ -4,5 +4,6 @@
   "jira_username": "your-jira-username",
   "slack_domain": "your-company.enterprise.slack.com",
   "slack_dm_domain": "your-company-internal.slack.com",
-  "jira_base_url": "https://your-company.atlassian.net"
+  "jira_base_url": "https://your-company.atlassian.net",
+  "gh_default_repo": "your-org/your-repo"
 }
