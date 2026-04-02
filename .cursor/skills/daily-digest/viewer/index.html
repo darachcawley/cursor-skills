@@ -891,9 +891,9 @@
 
       async function loadUserConfig() {
         const paths = [
-          '../../../../user_config.json',
           '../user_config.json',
           './user_config.json',
+          '../../../../user_config.json',
           '../../../user_config.json',
         ];
         for (const p of paths) {
@@ -926,10 +926,12 @@
               return '<a href="' + match + '" target="_blank" rel="noopener noreferrer" style="' + LINK_STYLE + '">' + label + '</a>';
             }
             if (prNum) {
-              return '<a href="https://github.com/' + GH_DEFAULT_REPO + '/pull/' + prNum + '" target="_blank" rel="noopener noreferrer" style="' + LINK_STYLE + '">PR #' + prNum + '</a>';
+              var repo = GH_DEFAULT_REPO || 'opendatahub-io/odh-dashboard';
+              return '<a href="https://github.com/' + encodeURI(repo) + '/pull/' + prNum + '" target="_blank" rel="noopener noreferrer" style="' + LINK_STYLE + '">PR #' + prNum + '</a>';
             }
             if (jiraKey) {
-              return '<a href="' + JIRA_BROWSE + jiraKey + '" target="_blank" rel="noopener noreferrer" style="' + LINK_STYLE + '">' + jiraKey + '</a>';
+              var jiraBrowse = JIRA_BROWSE || 'https://redhat.atlassian.net/browse/';
+              return '<a href="' + jiraBrowse + jiraKey + '" target="_blank" rel="noopener noreferrer" style="' + LINK_STYLE + '">' + jiraKey + '</a>';
             }
             return match;
           }
