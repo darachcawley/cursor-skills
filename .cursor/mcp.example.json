@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "atlassian": {
+    "user-atlassian": {
       "type": "stdio",
       "command": "uvx",
       "args": ["mcp-atlassian"],
@@ -11,7 +11,8 @@
         "JIRA_SSL_VERIFY": "true"
       }
     },
-    "slack": {
+    "user-slack": {
+      "type": "stdio",
       "command": "npx",
       "args": ["-y", "slack-mcp-server"],
       "env": {

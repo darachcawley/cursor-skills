@@ -1,8 +1,11 @@
 # Auto-generated output — do not commit personal data
 digests/
+# Entire digests/ tree ignored (includes digests/.backups/ if used)
 active_features.json
+jira_local_state.json
 jira_mentions.json
 viewer/digests-manifest.json
+viewer/user_config.json
 
 # User-specific config (created from .example files)
 slack_channels_config.json

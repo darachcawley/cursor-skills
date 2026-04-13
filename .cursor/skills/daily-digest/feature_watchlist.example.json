@@ -2,5 +2,6 @@
   "features": [
     "RHAISTRAT-545",
     "RHAISTRAT-172"
-  ]
+  ],
+  "epic_child_refresh": "every_run"
 }

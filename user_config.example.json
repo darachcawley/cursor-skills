@@ -1,9 +1,12 @@
 {
-  "slack_username": "your-slack-username",
   "jira_display_name": "Your Full Name",
   "jira_username": "your-jira-username",
+  "jira_email": "you@company.com",
+  "jira_account_id": "712020:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "slack_username": "your-slack-username",
   "slack_domain": "your-company.enterprise.slack.com",
   "slack_dm_domain": "your-company-internal.slack.com",
   "jira_base_url": "https://your-company.atlassian.net",
-  "gh_default_repo": "your-org/your-repo"
+  "gh_default_repo": "your-org/your-repo",
+  "obsidian_digest_path": ""
 }

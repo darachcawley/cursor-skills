@@ -53,7 +53,7 @@
       }
       .layout {
         display: grid;
-        grid-template-columns: 220px 1fr 360px;
+        grid-template-columns: 220px 1fr 1fr;
         min-height: 0;
         overflow: hidden;
       }
@@ -829,13 +829,121 @@
         padding: 0.4rem 0;
       }
 
+      /* Person search report cards */
+      .person-report-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+      }
+      .person-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--accent-dim);
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+      .person-info h3 {
+        font-size: 15px;
+        font-weight: 700;
+        margin: 0;
+      }
+      .person-info .person-meta {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .person-overall-summary {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 1.5rem;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .person-thread-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.75rem;
+        transition: border-color 0.15s;
+      }
+      .person-thread-card:hover {
+        border-color: rgba(56, 189, 248, 0.3);
+      }
+      .person-said-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--accent);
+        margin-bottom: 0.3rem;
+      }
+      .person-said-text {
+        font-size: 13px;
+        line-height: 1.55;
+        margin-bottom: 0.4rem;
+      }
+      .person-thread-context {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.45;
+        border-left: 2px solid var(--border);
+        padding-left: 0.65rem;
+        margin-top: 0.4rem;
+      }
+      .people-date-filter {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+        padding: 0.85rem 1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .people-date-filter .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .people-date-filter .filter-group label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .people-date-filter select {
+        padding: 0.35rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 12px;
+      }
+      .people-empty {
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+        padding: 2rem 1rem;
+      }
+
       @media (max-width: 900px) {
         .layout { grid-template-columns: 1fr; }
         .sidebar, .feature-tracker { display: none; }
       }
       @media (min-width: 901px) and (max-width: 1100px) {
-        .layout { grid-template-columns: 220px 1fr; }
-        .feature-tracker { display: none; }
+        .layout { grid-template-columns: 220px 1fr 1fr; }
       }
     </style>
   </head>
@@ -888,6 +996,7 @@
       let SLACK_DM_DOMAIN = '';
       const LINK_STYLE = 'color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(56,189,248,0.35)';
       let GH_DEFAULT_REPO = '';
+      let CLOSE_CIRCLE = [];
 
       async function loadUserConfig() {
         const paths = [
@@ -913,6 +1022,23 @@
           } catch (e) { /* try next path */ }
         }
         console.warn('Could not load user_config.json from any path. MY_USER will be empty — "My Actions" tab may not filter correctly.');
+      }
+
+      async function loadCloseCircle() {
+        const paths = [
+          '../close_circle.json',
+          './close_circle.json',
+          '../../../../close_circle.json',
+        ];
+        for (const p of paths) {
+          try {
+            const res = await fetch(resolveUrl(p));
+            if (!res.ok) continue;
+            const cfg = await res.json();
+            CLOSE_CIRCLE = (cfg.people || []).map(h => h.toLowerCase().replace(/^@/, ''));
+            if (CLOSE_CIRCLE.length > 0) return;
+          } catch { /* try next path */ }
+        }
       }
 
       function linkify(text) {
@@ -1488,7 +1614,163 @@
         return html;
       }
 
-      let todoState = { period: '7', tab: 'mine', allActions: [], filters: { channel: 'all' } };
+      let reportsManifest = null;
+      let reportsCache = new Map();
+
+      async function loadReportsManifest() {
+        try {
+          const res = await fetch(resolveUrl('./reports-manifest.json'));
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          reportsManifest = await res.json();
+        } catch {
+          reportsManifest = { reports: [] };
+        }
+        return reportsManifest;
+      }
+
+      async function fetchReport(file) {
+        if (reportsCache.has(file)) return reportsCache.get(file);
+        try {
+          const res = await fetch(resolveUrl('../reports/' + file));
+          if (!res.ok) return null;
+          const data = await res.json();
+          reportsCache.set(file, data);
+          return data;
+        } catch { return null; }
+      }
+
+      function getReportDates() {
+        if (!reportsManifest || !reportsManifest.reports) return [];
+        const dates = [...new Set(reportsManifest.reports.map(r => r.date))];
+        return dates.sort().reverse();
+      }
+
+      function getReportPeople() {
+        if (!reportsManifest || !reportsManifest.reports) return [];
+        const seen = new Map();
+        for (const r of reportsManifest.reports) {
+          if (!seen.has(r.person)) seen.set(r.person, r.display_name || r.person);
+        }
+        return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+      }
+
+      function getFilteredReports(date, person) {
+        if (!reportsManifest || !reportsManifest.reports) return [];
+        return reportsManifest.reports.filter(r => {
+          if (date !== 'all' && r.date !== date) return false;
+          if (person !== 'all' && r.person !== person) return false;
+          return true;
+        });
+      }
+
+      function personInitials(name) {
+        return (name || '??').split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2);
+      }
+
+      function renderPersonReport(report) {
+        const p = report.person || {};
+        let html = '';
+
+        html += '<div class="person-report-header">';
+        html += '<div class="person-avatar">' + esc(personInitials(p.display_name)) + '</div>';
+        html += '<div class="person-info">';
+        html += '<h3>' + esc(p.display_name || p.slack_username || 'Unknown') + '</h3>';
+        html += '<div class="person-meta">' + esc(p.slack_username || '') + ' · ' + esc(p.email || '') + ' · ' + esc(formatDate(report.date)) + '</div>';
+        html += '</div></div>';
+
+        const stats = report.stats || {};
+        html += '<div class="stats-bar">';
+        html += '<div class="stat-pill"><span>Channels</span><strong>' + esc(stats.total_channels ?? 0) + '</strong></div>';
+        html += '<div class="stat-pill"><span>Threads</span><strong>' + esc(stats.total_threads ?? 0) + '</strong></div>';
+        html += '<div class="stat-pill"><span>Messages</span><strong>' + esc(stats.total_messages ?? 0) + '</strong></div>';
+        html += '</div>';
+
+        if (report.overall_summary) {
+          html += '<div class="person-overall-summary">' + linkify(report.overall_summary) + '</div>';
+        }
+
+        for (const ch of (report.channels || [])) {
+          html += '<div class="channel-section">';
+          html += '<div class="channel-name">' + esc(ch.channel) + '</div>';
+          for (const t of (ch.threads || [])) {
+            html += '<div class="person-thread-card">';
+            html += '<div class="thread-top">';
+            html += '<span class="thread-participants">' + esc((t.participants || []).join(', ')) + '</span>';
+            if (t.thread_link) {
+              html += '<a class="thread-link" href="' + esc(t.thread_link) + '" target="_blank" rel="noopener noreferrer">Open in Slack</a>';
+            }
+            html += '</div>';
+            if (t.person_said) {
+              html += '<div class="person-said-label">What they said</div>';
+              html += '<div class="person-said-text">' + linkify(t.person_said) + '</div>';
+            }
+            if (t.summary) {
+              html += '<div class="person-thread-context">' + linkify(t.summary) + '</div>';
+            }
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+
+        return html;
+      }
+
+      async function renderPeopleTab() {
+        const container = document.getElementById('todo-tab-content');
+        if (!container) return;
+
+        if (!reportsManifest) await loadReportsManifest();
+        const reports = reportsManifest.reports || [];
+
+        if (reports.length === 0) {
+          container.innerHTML = '<div class="people-empty"><p>No person search reports yet.</p><p style="font-size:12px;margin-top:0.5rem">Ask "What did someone@example.com say on Slack on YYYY-MM-DD?" to generate one.</p></div>';
+          return;
+        }
+
+        const dates = getReportDates();
+        const people = getReportPeople();
+        const selectedDate = todoState.peopleDate || dates[0] || 'all';
+        const selectedPerson = todoState.peoplePerson || 'all';
+
+        let html = '<div class="people-date-filter">';
+        html += '<div class="filter-group"><label>Person</label><select id="people-person-filter">';
+        html += '<option value="all"' + (selectedPerson === 'all' ? ' selected' : '') + '>All people</option>';
+        for (const [handle, name] of people) {
+          html += '<option value="' + esc(handle) + '"' + (selectedPerson === handle ? ' selected' : '') + '>' + esc(name) + ' (@' + esc(handle) + ')</option>';
+        }
+        html += '</select></div>';
+        html += '<div class="filter-group"><label>Date</label><select id="people-date-filter">';
+        html += '<option value="all"' + (selectedDate === 'all' ? ' selected' : '') + '>All dates</option>';
+        for (const d of dates) {
+          html += '<option value="' + esc(d) + '"' + (selectedDate === d ? ' selected' : '') + '>' + esc(d) + ' — ' + esc(formatDate(d)) + '</option>';
+        }
+        html += '</select></div></div>';
+
+        const matchingReports = getFilteredReports(selectedDate, selectedPerson);
+        html += '<div class="todo-count">' + matchingReports.length + ' report' + (matchingReports.length !== 1 ? 's' : '') + '</div>';
+
+        const loaded = await Promise.all(matchingReports.map(r => fetchReport(r.file)));
+
+        for (const report of loaded) {
+          if (!report) continue;
+          html += renderPersonReport(report);
+          html += '<hr style="border:none;border-top:1px solid var(--border);margin:1.5rem 0">';
+        }
+
+        container.innerHTML = html;
+
+        const dateFilter = document.getElementById('people-date-filter');
+        const personFilter = document.getElementById('people-person-filter');
+        function onPeopleFilterChange() {
+          todoState.peopleDate = dateFilter.value;
+          todoState.peoplePerson = personFilter.value;
+          renderPeopleTab();
+        }
+        if (dateFilter) dateFilter.addEventListener('change', onPeopleFilterChange);
+        if (personFilter) personFilter.addEventListener('change', onPeopleFilterChange);
+      }
+
+      let todoState = { period: '7', tab: 'mine', allActions: [], filters: { channel: 'all' }, peopleDate: null, peoplePerson: 'all' };
 
       function isMyAction(a) {
         const ch = (a.channel || '').toLowerCase();
@@ -1501,22 +1783,46 @@
         return false;
       }
 
+      function isCloseCircleAction(a) {
+        if (CLOSE_CIRCLE.length === 0) return false;
+        const owner = (a.owner || '').toLowerCase().replace(/^@/, '');
+        return owner !== '' && CLOSE_CIRCLE.includes(owner);
+      }
+
       function splitByOwner(actions) {
         const mine = [];
+        const circle = [];
         const others = [];
         for (const a of actions) {
           if (isMyAction(a)) {
             mine.push(a);
+          } else if (isCloseCircleAction(a)) {
+            circle.push(a);
           } else {
             others.push(a);
           }
         }
-        return { mine, others };
+        return { mine, circle, others };
       }
 
       function renderTodoTab() {
-        const { mine, others } = splitByOwner(todoState.allActions);
-        const tabActions = todoState.tab === 'mine' ? mine : others;
+        const filtersWrap = document.getElementById('todo-filters-wrap');
+        const hideTodoFilters = todoState.tab === 'people';
+        if (filtersWrap) filtersWrap.style.display = hideTodoFilters ? 'none' : '';
+
+        if (todoState.tab === 'people') {
+          renderPeopleTab();
+          document.querySelectorAll('.todo-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === todoState.tab);
+          });
+          return;
+        }
+
+        const { mine, circle, others } = splitByOwner(todoState.allActions);
+        let tabActions;
+        if (todoState.tab === 'mine') tabActions = mine;
+        else if (todoState.tab === 'circle') tabActions = circle;
+        else tabActions = others;
         const filtered = filterActions(tabActions, todoState.filters);
 
         const countDone = filtered.filter(a => isActionDone(a)).length;
@@ -1532,14 +1838,17 @@
 
         document.getElementById('todo-tab-content').innerHTML = html;
 
-        const { mine: mAll, others: oAll } = splitByOwner(todoState.allActions);
+        const { mine: mAll, circle: cAll, others: oAll } = splitByOwner(todoState.allActions);
         const mRem = mAll.filter(a => !isActionDone(a)).length;
+        const cRem = cAll.filter(a => !isActionDone(a)).length;
         const oRem = oAll.filter(a => !isActionDone(a)).length;
         document.querySelectorAll('.todo-tab').forEach(btn => {
           btn.classList.toggle('active', btn.dataset.tab === todoState.tab);
           const countEl = btn.querySelector('.tab-count');
           if (countEl) {
-            countEl.textContent = btn.dataset.tab === 'mine' ? mRem : oRem;
+            if (btn.dataset.tab === 'mine') countEl.textContent = mRem;
+            else if (btn.dataset.tab === 'circle') countEl.textContent = cRem;
+            else if (btn.dataset.tab === 'watch') countEl.textContent = oRem;
           }
         });
       }
@@ -1566,21 +1875,31 @@
 
         todoState = { period, tab: todoState.tab || 'mine', allActions, filters };
 
-        const { mine, others } = splitByOwner(allActions);
-
         let html = '<div class="todo-header"><h2>To Do</h2>';
         const slackTotal = allActions.filter(a => a.source === 'slack').length;
         const jiraTotal = allActions.filter(a => a.source === 'jira').length;
         html += '<div class="todo-subtitle">' + datesInRange.length + ' digest(s) loaded &middot; ' + allActions.length + ' total items (' + slackTotal + ' Slack, ' + jiraTotal + ' Jira)</div></div>';
 
+        if (!reportsManifest) await loadReportsManifest();
+        const reportCount = (reportsManifest.reports || []).length;
+
+        if (CLOSE_CIRCLE.length === 0) await loadCloseCircle();
+
+        const { mine, circle, others } = splitByOwner(allActions);
+
         html += '<div class="todo-tabs">';
         const mineRemaining = mine.filter(a => !isActionDone(a)).length;
+        const circleRemaining = circle.filter(a => !isActionDone(a)).length;
         const othersRemaining = others.filter(a => !isActionDone(a)).length;
         html += '<button type="button" class="todo-tab' + (todoState.tab === 'mine' ? ' active' : '') + '" data-tab="mine">My Actions<span class="tab-count">' + mineRemaining + '</span></button>';
+        if (CLOSE_CIRCLE.length > 0) {
+          html += '<button type="button" class="todo-tab' + (todoState.tab === 'circle' ? ' active' : '') + '" data-tab="circle">Close Circle<span class="tab-count">' + circleRemaining + '</span></button>';
+        }
         html += '<button type="button" class="todo-tab' + (todoState.tab === 'watch' ? ' active' : '') + '" data-tab="watch">To Watch<span class="tab-count">' + othersRemaining + '</span></button>';
+        html += '<button type="button" class="todo-tab' + (todoState.tab === 'people' ? ' active' : '') + '" data-tab="people">People<span class="tab-count">' + reportCount + '</span></button>';
         html += '</div>';
 
-        html += renderTodoFilters(allActions, period, filters);
+        html += '<div id="todo-filters-wrap">' + renderTodoFilters(allActions, period, filters) + '</div>';
         html += '<div id="todo-tab-content"></div>';
         mainContent.innerHTML = html;
 
