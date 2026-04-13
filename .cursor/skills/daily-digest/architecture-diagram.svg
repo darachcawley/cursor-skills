@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 700" style="background: #0a0e1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+  <defs>
+    <linearGradient id="slackGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A154B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#611f69;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="jiraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0052CC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2684FF;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="skillGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="htmlGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="obsidianGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6d28d9;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#38bdf8" opacity="0.9"/>
+    </marker>
+    <marker id="arrowConfigGray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#64748b" opacity="0.6"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="40" font-size="26" font-weight="700" fill="#f8fafc" text-anchor="middle">Daily Digest Skill — Information Flow</text>
+
+  <!-- Sources Section -->
+  <g id="sources">
+    <!-- Slack -->
+    <rect x="50" y="120" width="200" height="150" rx="14" fill="url(#slackGrad)" opacity="0.95" filter="url(#glow)"/>
+    <text x="150" y="155" font-size="18" font-weight="700" fill="#fff" text-anchor="middle">Slack</text>
+    <text x="150" y="185" font-size="12" fill="#e2e8f0" text-anchor="middle">📢 Channels</text>
+    <text x="150" y="207" font-size="12" fill="#e2e8f0" text-anchor="middle">💬 DMs</text>
+    <text x="150" y="229" font-size="12" fill="#e2e8f0" text-anchor="middle">🧵 Threads</text>
+    <text x="150" y="251" font-size="12" fill="#e2e8f0" text-anchor="middle">@ Mentions</text>
+
+    <!-- Jira -->
+    <rect x="50" y="310" width="200" height="150" rx="14" fill="url(#jiraGrad)" opacity="0.95" filter="url(#glow)"/>
+    <text x="150" y="345" font-size="18" font-weight="700" fill="#fff" text-anchor="middle">Jira</text>
+    <text x="150" y="375" font-size="12" fill="#e2e8f0" text-anchor="middle">🎫 Issues</text>
+    <text x="150" y="397" font-size="12" fill="#e2e8f0" text-anchor="middle">💭 Comments</text>
+    <text x="150" y="419" font-size="12" fill="#e2e8f0" text-anchor="middle">📦 Epics</text>
+    <text x="150" y="441" font-size="12" fill="#e2e8f0" text-anchor="middle">@ Mentions</text>
+  </g>
+
+  <!-- MCP Servers Section -->
+  <g id="mcp-servers">
+    <rect x="330" y="120" width="180" height="110" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5" opacity="0.85"/>
+    <text x="420" y="148" font-size="14" font-weight="700" fill="#38bdf8" text-anchor="middle">MCP Server</text>
+    <text x="420" y="171" font-size="13" fill="#94a3b8" text-anchor="middle">user-slack</text>
+    <text x="420" y="193" font-size="10" fill="#64748b" text-anchor="middle">conversations_history</text>
+    <text x="420" y="210" font-size="10" fill="#64748b" text-anchor="middle">search_messages</text>
+
+    <rect x="330" y="270" width="180" height="110" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5" opacity="0.85"/>
+    <text x="420" y="298" font-size="14" font-weight="700" fill="#38bdf8" text-anchor="middle">MCP Server</text>
+    <text x="420" y="321" font-size="13" fill="#94a3b8" text-anchor="middle">user-atlassian</text>
+    <text x="420" y="343" font-size="10" fill="#64748b" text-anchor="middle">jira_search</text>
+    <text x="420" y="360" font-size="10" fill="#64748b" text-anchor="middle">jira_get_issue</text>
+
+    <!-- Arrows from sources to MCP -->
+    <path d="M 250 195 L 330 175" stroke="#38bdf8" stroke-width="3" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+    <path d="M 250 385 L 330 335" stroke="#38bdf8" stroke-width="3" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  </g>
+
+  <!-- Daily Digest Skill Section -->
+  <g id="skill">
+    <rect x="590" y="150" width="320" height="260" rx="16" fill="url(#skillGrad)" opacity="0.95" filter="url(#glow)"/>
+    <text x="750" y="185" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">Daily Digest Skill</text>
+
+    <!-- Workflow steps -->
+    <rect x="615" y="210" width="270" height="28" rx="6" fill="#064e3b" opacity="0.7"/>
+    <text x="750" y="230" font-size="11.5" fill="#d1fae5" text-anchor="middle">1. Fetch Slack channels &amp; threads</text>
+
+    <rect x="615" y="245" width="270" height="28" rx="6" fill="#064e3b" opacity="0.7"/>
+    <text x="750" y="265" font-size="11.5" fill="#d1fae5" text-anchor="middle">2. Fetch Jira @mentions &amp; features</text>
+
+    <rect x="615" y="280" width="270" height="28" rx="6" fill="#064e3b" opacity="0.7"/>
+    <text x="750" y="300" font-size="11.5" fill="#d1fae5" text-anchor="middle">3. Summarize &amp; extract actions</text>
+
+    <rect x="615" y="315" width="270" height="28" rx="6" fill="#064e3b" opacity="0.7"/>
+    <text x="750" y="335" font-size="11.5" fill="#d1fae5" text-anchor="middle">4. Build digest JSON</text>
+
+    <rect x="615" y="350" width="270" height="28" rx="6" fill="#064e3b" opacity="0.7"/>
+    <text x="750" y="370" font-size="11.5" fill="#d1fae5" text-anchor="middle">5. Safe merge with existing data</text>
+
+    <rect x="615" y="385" width="270" height="28" rx="6" fill="#064e3b" opacity="0.7"/>
+    <text x="750" y="405" font-size="11.5" fill="#d1fae5" text-anchor="middle">6. Generate outputs</text>
+
+    <!-- Arrows from MCP to Skill -->
+    <path d="M 510 175 L 590 210" stroke="#38bdf8" stroke-width="3.5" fill="none" marker-end="url(#arrowhead)" opacity="0.8"/>
+    <path d="M 510 325 L 590 300" stroke="#38bdf8" stroke-width="3.5" fill="none" marker-end="url(#arrowhead)" opacity="0.8"/>
+  </g>
+
+  <!-- Outputs Section -->
+  <g id="outputs">
+    <!-- HTML Viewer -->
+    <rect x="1000" y="120" width="280" height="180" rx="14" fill="url(#htmlGrad)" opacity="0.95" filter="url(#glow)"/>
+    <text x="1140" y="155" font-size="18" font-weight="700" fill="#fff" text-anchor="middle">HTML Viewer</text>
+    <text x="1140" y="185" font-size="12" fill="#fed7aa" text-anchor="middle">📊 Executive summary</text>
+    <text x="1140" y="207" font-size="12" fill="#fed7aa" text-anchor="middle">✅ My Actions / To Watch</text>
+    <text x="1140" y="229" font-size="12" fill="#fed7aa" text-anchor="middle">👥 Close Circle actions</text>
+    <text x="1140" y="251" font-size="12" fill="#fed7aa" text-anchor="middle">🎯 Feature tracker</text>
+    <text x="1140" y="273" font-size="12" fill="#fed7aa" text-anchor="middle">🔍 Person activity search</text>
+
+    <!-- Obsidian -->
+    <rect x="1000" y="340" width="280" height="180" rx="14" fill="url(#obsidianGrad)" opacity="0.95" filter="url(#glow)"/>
+    <text x="1140" y="375" font-size="18" font-weight="700" fill="#fff" text-anchor="middle">Obsidian Markdown</text>
+    <text x="1140" y="405" font-size="12" fill="#ddd6fe" text-anchor="middle">📝 Daily note with YAML</text>
+    <text x="1140" y="427" font-size="12" fill="#ddd6fe" text-anchor="middle">🔗 Clickable Slack links</text>
+    <text x="1140" y="449" font-size="12" fill="#ddd6fe" text-anchor="middle">📋 Action items</text>
+    <text x="1140" y="471" font-size="12" fill="#ddd6fe" text-anchor="middle">🏷️ Jira mentions</text>
+    <text x="1140" y="493" font-size="12" fill="#ddd6fe" text-anchor="middle">💡 Key highlights</text>
+
+    <!-- Arrows from Skill to Outputs -->
+    <path d="M 910 230 L 1000 210" stroke="#38bdf8" stroke-width="3.5" fill="none" marker-end="url(#arrowhead)" opacity="0.8"/>
+    <path d="M 910 340 L 1000 430" stroke="#38bdf8" stroke-width="3.5" fill="none" marker-end="url(#arrowhead)" opacity="0.8"/>
+  </g>
+
+  <!-- Data Files Note -->
+  <g id="data-files">
+    <rect x="590" y="460" width="320" height="120" rx="12" fill="#1e293b" stroke="#475569" stroke-width="2" opacity="0.7"/>
+    <text x="750" y="485" font-size="13" font-weight="700" fill="#cbd5e1" text-anchor="middle">Generated Files</text>
+    <text x="610" y="508" font-size="10" fill="#94a3b8" font-family="'Courier New', monospace">digests/YYYY-MM-DD.json</text>
+    <text x="610" y="527" font-size="10" fill="#94a3b8" font-family="'Courier New', monospace">active_features.json</text>
+    <text x="610" y="546" font-size="10" fill="#94a3b8" font-family="'Courier New', monospace">jira_mentions.json</text>
+    <text x="610" y="565" font-size="10" fill="#94a3b8" font-family="'Courier New', monospace">markdown/YYYY-MM-DD.md</text>
+
+    <!-- Arrow from skill to data files -->
+    <path d="M 750 410 L 750 460" stroke="#64748b" stroke-width="2" stroke-dasharray="4,4" fill="none" marker-end="url(#arrowConfigGray)" opacity="0.5"/>
+  </g>
+
+  <!-- Config Files -->
+  <g id="config">
+    <rect x="50" y="520" width="240" height="130" rx="12" fill="#1e293b" stroke="#64748b" stroke-width="2" opacity="0.7"/>
+    <text x="170" y="545" font-size="13" font-weight="700" fill="#cbd5e1" text-anchor="middle">Configuration</text>
+    <text x="70" y="568" font-size="10" fill="#94a3b8" font-family="'Courier New', monospace">user_config.json</text>
+    <text x="70" y="587" font-size="10" fill="#94a3b8" font-family="'Courier New', monospace">slack_channels_config.json</text>
+    <text x="70" y="606" font-size="10" fill="#94a3b8" font-family="'Courier New', monospace">feature_watchlist.json</text>
+    <text x="70" y="625" font-size="10" fill="#94a3b8" font-family="'Courier New', monospace">close_circle.json</text>
+
+    <!-- Arrow from config to skill -->
+    <path d="M 290 580 L 590 320" stroke="#64748b" stroke-width="2" stroke-dasharray="4,4" fill="none" marker-end="url(#arrowConfigGray)" opacity="0.5"/>
+  </g>
+
+  <!-- User Trigger -->
+  <g id="user">
+    <circle cx="750" cy="600" r="30" fill="#ec4899" opacity="0.95" filter="url(#glow)"/>
+    <text x="750" y="607" font-size="24" text-anchor="middle">👤</text>
+    <text x="750" y="645" font-size="13" font-weight="600" fill="#f8fafc" text-anchor="middle">User (via Cursor Agent)</text>
+    <text x="750" y="665" font-size="11" fill="#94a3b8" text-anchor="middle">"Give me a daily digest for yesterday"</text>
+
+    <!-- Arrow from user to skill -->
+    <path d="M 750 570 L 750 410" stroke="#ec4899" stroke-width="2.5" stroke-dasharray="6,6" fill="none" opacity="0.6"/>
+  </g>
+</svg>

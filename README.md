@@ -19,6 +19,12 @@ After you run a digest (e.g. *"Give me a daily digest for yesterday"* in Agent c
 
 Full workflow, edge cases (person-only search, safe merge when MCP fails), and step-by-step instructions are in **[Daily Digest SKILL.md](.cursor/skills/daily-digest/SKILL.md)**. A short skill overview lives in **[`.cursor/skills/daily-digest/README.md`](.cursor/skills/daily-digest/README.md)**.
 
+### Architecture
+
+The diagram below shows how information flows from Slack and Jira through MCP servers, into the Daily Digest Skill, and out to the HTML viewer and Obsidian:
+
+![Daily Digest Architecture](.cursor/skills/daily-digest/architecture-diagram.svg)
+
 ## Prerequisites
 
 - [Cursor IDE](https://cursor.com) with Agent mode enabled
