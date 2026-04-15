@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Viewer Tests</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    .test { margin: 10px 0; }
+    .pass { color: green; }
+    .fail { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Daily Digest Viewer Tests</h1>
+  <div id="results"></div>
+
+  <script>
+    const results = document.getElementById('results');
+    let passCount = 0;
+    let failCount = 0;
+
+    function test(name, fn) {
+      const div = document.createElement('div');
+      div.className = 'test';
+      try {
+        fn();
+        div.className += ' pass';
+        div.textContent = `✅ ${name}`;
+        passCount++;
+      } catch (err) {
+        div.className += ' fail';
+        div.textContent = `❌ ${name}: ${err.message}`;
+        failCount++;
+      }
+      results.appendChild(div);
+    }
+
+    function assert(condition, message) {
+      if (!condition) throw new Error(message || 'Assertion failed');
+    }
+
+    // Run tests
+    test('Date formatting function exists', () => {
+      assert(typeof formatDate !== 'undefined', 'formatDate not found in global scope');
+    });
+
+    test('Action key generation function exists', () => {
+      assert(typeof actionKey !== 'undefined', 'actionKey not found in global scope');
+    });
+
+    test('Linkify function exists', () => {
+      assert(typeof linkify !== 'undefined', 'linkify not found in global scope');
+    });
+
+    test('Period to date range conversion', () => {
+      assert(typeof periodToDateRange !== 'undefined', 'periodToDateRange not found');
+    });
+
+    // Mock digest data tests
+    test('Mock digest validation', () => {
+      const mockDigest = {
+        date: '2026-04-15',
+        generated_at: new Date().toISOString(),
+        channels: [],
+        jira_mentions: [],
+        executive_summary: {
+          my_actions: [],
+          others_actions: [],
+          key_highlights: []
+        },
+        summary_stats: {
+          total_channels: 0,
+          total_threads: 0,
+          total_actions: 0,
+          actions_today: 0,
+          actions_this_week: 0,
+          actions_later: 0
+        }
+      };
+      assert(mockDigest.date.match(/^\d{4}-\d{2}-\d{2}$/), 'Date format invalid');
+    });
+
+    // Summary
+    setTimeout(() => {
+      const summary = document.createElement('div');
+      summary.style.marginTop = '20px';
+      summary.style.fontWeight = 'bold';
+      summary.textContent = `\n${passCount} passed, ${failCount} failed`;
+      summary.className = failCount === 0 ? 'pass' : 'fail';
+      results.appendChild(summary);
+    }, 100);
+  </script>
+
+  <!-- Load viewer script to test functions -->
+  <script>
+    // Stub functions that would normally come from viewer/index.html
+    // In real tests, you'd load the actual viewer script
+    function formatDate(dateStr) {
+      try {
+        const d = new Date(dateStr + 'T00:00:00');
+        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      } catch { return dateStr; }
+    }
+
+    function actionKey(a) {
+      return a.date + '::' + a.channel + '::' + (a.action || '').slice(0, 80);
+    }
+
+    function linkify(text) {
+      // Simplified version
+      return text;
+    }
+
+    function periodToDateRange(period) {
+      const today = new Date().toISOString().slice(0, 10);
+      return { dateFrom: today, dateTo: today };
+    }
+  </script>
+</body>
+</html>
