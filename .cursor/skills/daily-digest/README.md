@@ -28,6 +28,10 @@ Configure Slack + Jira MCP in `.cursor/mcp.json` (see [README.md](../../../READM
 | HTML viewer | Serve repo: `npx serve .cursor/skills/daily-digest` → `/viewer/` |
 | Markdown (Obsidian) | `markdown/YYYY-MM-DD.md` or `obsidian_digest_path` in `user_config.json` |
 
+## DMs
+
+With `include_dms: true`, **Step 3b** loads 1:1 DMs with other people for the digest date via a **separate** `conversations_search_messages` call per IM channel (see [SKILL.md](SKILL.md) Step 3b). Channel search (Step 2), self-DM (Step 3), and usergroup search (Step 3c) are unchanged.
+
 ## Try in Cursor
 
 > Give me a daily digest for yesterday

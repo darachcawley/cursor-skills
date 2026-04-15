@@ -1513,13 +1513,22 @@
       }
 
       function periodToDateRange(period) {
-        const today = new Date();
-        const todayStr = today.toISOString().slice(0, 10);
-        const d = new Date(today);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const t = new Date(todayStr + 'T12:00:00');
+        let rangeEndStr = todayStr;
+        if (manifest && manifest.digests && manifest.digests.length > 0) {
+          const sorted = manifest.digests.map(d => d.date).sort();
+          const latestDigest = sorted[sorted.length - 1];
+          const l = new Date(latestDigest + 'T12:00:00');
+          rangeEndStr = t > l ? todayStr : latestDigest;
+        }
+        const end = new Date(rangeEndStr + 'T12:00:00');
+        const d = new Date(end);
         if (period === '1') { d.setDate(d.getDate() - 1); }
         else if (period === '7') { d.setDate(d.getDate() - 7); }
         else { d.setDate(d.getDate() - 14); }
-        return { dateFrom: d.toISOString().slice(0, 10), dateTo: todayStr };
+        const dateFrom = d.toISOString().slice(0, 10);
+        return { dateFrom, dateTo: rangeEndStr };
       }
 
       function renderTodoFilters(allActions, period, filters) {
@@ -1989,7 +1998,7 @@
         }
 
         renderSidebar();
-        await openTodo();
+        await loadDigest(manifest.digests[0].date);
       }
 
       todoBtn.addEventListener('click', () => openTodo(todoState.period, todoState.filters));

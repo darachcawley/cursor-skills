@@ -108,6 +108,8 @@ The self-DM channel is the IM entry named `@{slack_username}` (e.g., `D06BXAVPNA
 
 Build a lookup map from channel name → channel ID. Use these IDs in **all** `thread_link` fields throughout the digest — including self-DMs and DMs with others. Links using channel names or user IDs instead of channel IDs will not work in Slack.
 
+**IM list for Step 3b:** From the same `channels_list` (`im`) results, note every IM **channel ID** (`D…`) whose name is **not** `@{slack_username}` — those are DMs with other people. (Do not use this list to change Step 2 or Step 3c; it is only for Step 3b.)
+
 ### Step 2 — Fetch channel messages for the target date
 
 For **each channel** in the config, use the `conversations_history` MCP tool on `user-slack`:
@@ -160,19 +162,33 @@ Treat every self-DM as an action item. Set urgency based on the message content 
 
 ### Step 3b — Fetch DMs with others (if enabled)
 
-If `include_dms` is true, use `conversations_unreads` on `user-slack` to find active DM conversations with other people, then fetch history for each:
+If `include_dms` is true, fetch messages for **one-on-one DMs with other people** for the digest date `D` using **only** targeted searches per DM channel. This keeps DM coverage date-accurate and **does not** change Step 2 (channels), Step 3 (self-DM), or Step 3c (usergroup searches). Do **not** use a workspace-wide `conversations_search_messages` call with no channel/IM filter for DMs — that would overlap and confuse other scopes.
+
+**Primary method (all dates, including today):**
+
+1. Use the IM rows from Step 1b (`channels_list`, `channel_types: "im"`). **Exclude** the self-DM channel (the IM named `@{slack_username}`).
+2. For **each** remaining IM channel ID (`D…`), run **`conversations_search_messages`** on `user-slack` scoped **only** to that conversation and `D`:
 
 ```
 server: user-slack
-tool: conversations_unreads
+tool: conversations_search_messages
 args:
-  channel_types: "dm"
-  include_messages: true
-  max_channels: 50
-  max_messages_per_channel: 20
+  filter_in_im_or_mpim: "<D-channel-id>"
+  filter_date_on: "YYYY-MM-DD"
+  limit: 100
 ```
 
-For historical dates, use `conversations_search_messages` on `user-slack` with `filter_date_on` and no channel filter, or search across DM channels individually.
+Use the digest date for `filter_date_on`. Paginate with `cursor` if the tool returns a next cursor and you need more rows for that DM.
+
+3. **Label** each result set in the digest as `"DM with @peer"` using the IM row’s peer name from Step 1b (the `Name` column / `@handle` for that `D` channel). Include `channel_id: "D…"` for thread links (`slack_dm_domain`).
+
+4. **Cap:** If there are more than **50** non-self IM channels, process the first 50 (same order as `channels_list`) unless the user config is extended later; note in the digest if any IM channels were skipped due to cap.
+
+5. **Optional supplement (only if needed):** If `conversations_search_messages` returns no rows for a DM you know had activity (API oddity), you may fetch recent context with `conversations_history` on that `channel_id` with `limit: "1d"` **only for digest date `D` equal to today** — do not use this as a substitute for date-filtered search on past dates.
+
+6. **Failure handling:** If some per-DM searches fail, continue others; align with **Safe write rules** for Slack (do not drop the whole digest). List skipped DMs in `key_highlights` or a short note if partial.
+
+**Do not use** `conversations_unreads` as the primary source for DM-with-others on date `D` — it reflects current unread state, not full activity on `D`. You may still call `conversations_unreads` for diagnostics only; it must not replace step 1–3 above for building the digest content.
 
 ### Step 3c — Search for usergroup mentions
 
@@ -839,6 +855,7 @@ cursor-skills/                            # Workspace root
 - When a channel has no activity for the target date, omit it from the digest (don't include empty channel entries)
 - Group standalone messages (not in threads) that are related by topic into a single summary entry
 - If rate-limited by Slack, pause and retry; inform the user of any channels that couldn't be fetched
+- **DMs with others (Step 3b):** Uses one `conversations_search_messages` call per non-self IM channel (with `filter_date_on` only) — it does not broaden Step 2 channel search or Step 3c usergroup search; many IMs means many calls, so respect the cap and retries
 - **Person search** (Step 3d) searches **all public channels**, not just configured ones
 - Person search includes full thread context from all participants to produce meaningful summaries
 - If the person had no activity on the target date, report that clearly
