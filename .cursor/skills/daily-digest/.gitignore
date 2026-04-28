@@ -10,3 +10,4 @@ viewer/user_config.json
 # User-specific config (created from .example files)
 slack_channels_config.json
 feature_watchlist.json
+close_circle.json

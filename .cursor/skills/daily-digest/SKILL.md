@@ -14,6 +14,7 @@ Before first use, copy each `.example.json` file to its real name and fill in yo
 1. `user_config.example.json` → `user_config.json` (in the **workspace root**, not this skill's directory) — your identity and environment (optional: `jira_email`, `jira_account_id` for reliable Jira @mention search in Step 6c; optional `obsidian_digest_path` for where Markdown is written at the end of Step 7)
 2. `slack_channels_config.example.json` → `slack_channels_config.json` — Slack channels to monitor
 3. `feature_watchlist.example.json` → `feature_watchlist.json` — Jira feature keys to track (optional); optional `epic_child_refresh` controls how often child issues are refetched (Step 6b)
+4. `close_circle.example.json` → `close_circle.json` — Slack handles of people in your close circle for viewer filtering (optional)
 
 You also need the following MCP servers configured in Cursor:
 - **Slack MCP** — commonly `user-slack` or `user-user-slack` (provides `conversations_history`, `conversations_search_messages`, etc.); use whatever identifier Cursor shows for **your** Slack integration
