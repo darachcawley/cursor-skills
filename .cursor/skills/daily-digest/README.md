@@ -30,7 +30,7 @@ Configure Slack + Jira MCP in `.cursor/mcp.json` (see [README.md](../../../READM
 
 ## DMs
 
-With `include_dms: true`, **Step 3b** loads 1:1 DMs with other people for the digest date via a **separate** `conversations_search_messages` call per IM channel (see [SKILL.md](SKILL.md) Step 3b). Channel search (Step 2), self-DM (Step 3), and usergroup search (Step 3c) are unchanged.
+With `include_dms: true`, **Step 3b** follows the **[slack-dm-list](../slack-dm-list/SKILL.md)** skill (bulk `is:dm` search, dedupe, labels, optional link mapping) and merges message rows into the digest pipeline; **legacy per-IM** search in [SKILL.md](SKILL.md) Step 3b applies only if bulk `is:dm` fails. Channel search (Step 2), self-DM (Step 3), and usergroup search (Step 3c) are unchanged.
 
 ## Try in Cursor
 

@@ -7,6 +7,7 @@ A collection of AI agent skills for [Cursor](https://cursor.com) that integrate 
 | Skill                                                    | Description                                                                                                                                                                                                                                                                      |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **[Daily Digest](.cursor/skills/daily-digest/SKILL.md)** | - Summarizes your Slack channels, DMs, and Jira mentions into a browsable daily report. - Track actions for you and your team members, which you can mark as done. - Track Features in Jira which you want to watch for progress & get summary updates that span Jira and Slack. |
+| **[Slack DM list](.cursor/skills/slack-dm-list/SKILL.md)** | Lists your Slack 1:1 DMs, self-DM, and group DMs (MPDMs) that had activity on a **single date** via one date-scoped DM search plus pagination (minimal API calls). Does not build a full digest or Jira context.                                                                |
 
 ### Daily Digest: what you get
 
@@ -198,17 +199,19 @@ cursor-skills/
     ├── mcp.json                  # MCP server config (gitignored, create from .example)
     ├── mcp.example.json          # Template
     └── skills/
-        └── daily-digest/
-            ├── README.md         # Short pointer + quick links
-            ├── SKILL.md          # Full workflow (steps, MCP, safe merge, person search)
-            ├── export_digest_to_md.py
-            ├── slack_channels_config.json
-            ├── feature_watchlist.json
-            ├── active_features.json    # Auto-generated (Jira feature tracker)
-            ├── jira_mentions.json      # Auto-generated (merged mention history)
-            ├── markdown/               # Default Obsidian-ready .md exports
-            ├── digests/                # Auto-generated daily JSON
-            └── viewer/                 # Self-contained HTML digest viewer
+        ├── daily-digest/
+        │   ├── README.md         # Short pointer + quick links
+        │   ├── SKILL.md          # Full workflow (steps, MCP, safe merge, person search)
+        │   ├── export_digest_to_md.py
+        │   ├── slack_channels_config.json
+        │   ├── feature_watchlist.json
+        │   ├── active_features.json    # Auto-generated (Jira feature tracker)
+        │   ├── jira_mentions.json      # Auto-generated (merged mention history)
+        │   ├── markdown/               # Default Obsidian-ready .md exports
+        │   ├── digests/                # Auto-generated daily JSON
+        │   └── viewer/                 # Self-contained HTML digest viewer
+        └── slack-dm-list/
+            └── SKILL.md              # DM conversation inventory by date (Slack MCP)
 ```
 
 ## Troubleshooting

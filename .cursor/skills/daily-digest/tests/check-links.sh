@@ -13,28 +13,36 @@ echo ""
 echo "Checking SKILL.md..."
 if [ -f "$SKILL_DIR/SKILL.md" ]; then
   while IFS= read -r line; do
-    if [[ "$line" =~ \[.*\]\((.*)\) ]]; then
-      link="${BASH_REMATCH[1]}"
-      # Skip external URLs and anchors
-      if [[ "$link" =~ ^https?:// ]] || [[ "$link" =~ ^# ]]; then
+    # Extract markdown links: [text](url)
+    while [[ "$line" =~ \[([^\]]+)\]\(([^\)]+)\) ]]; do
+      link="${BASH_REMATCH[2]}"
+      # Remove the matched part to find next link
+      line="${line#*\[*\](*\)}"
+
+      # Skip external URLs, anchors, and anything with backticks or special chars
+      if [[ "$link" =~ ^https?:// ]] || [[ "$link" =~ ^# ]] || [[ "$link" =~ \` ]] || [[ "$link" =~ \* ]]; then
         continue
       fi
+
+      # Strip anchor fragment if present
+      file_path="${link%%#*}"
+
       # Check if file exists
-      if [[ "$link" =~ ^/ ]]; then
+      if [[ "$file_path" =~ ^/ ]]; then
         # Absolute path
-        if [[ ! -e "$link" ]]; then
+        if [[ ! -e "$file_path" ]]; then
           echo "  ❌ Broken link: $link"
           ERRORS=$((ERRORS + 1))
         fi
       else
         # Relative path
-        target="$SKILL_DIR/$link"
+        target="$SKILL_DIR/$file_path"
         if [[ ! -e "$target" ]]; then
-          echo "  ❌ Broken link: $link (resolved to $target)"
+          echo "  ❌ Broken link: $link"
           ERRORS=$((ERRORS + 1))
         fi
       fi
-    fi
+    done
   done < "$SKILL_DIR/SKILL.md"
 fi
 
@@ -43,24 +51,36 @@ echo ""
 echo "Checking README.md..."
 if [ -f "$SKILL_DIR/README.md" ]; then
   while IFS= read -r line; do
-    if [[ "$line" =~ \[.*\]\((.*)\) ]]; then
-      link="${BASH_REMATCH[1]}"
-      if [[ "$link" =~ ^https?:// ]] || [[ "$link" =~ ^# ]]; then
+    # Extract markdown links: [text](url)
+    while [[ "$line" =~ \[([^\]]+)\]\(([^\)]+)\) ]]; do
+      link="${BASH_REMATCH[2]}"
+      # Remove the matched part to find next link
+      line="${line#*\[*\](*\)}"
+
+      # Skip external URLs, anchors, and anything with backticks or special chars
+      if [[ "$link" =~ ^https?:// ]] || [[ "$link" =~ ^# ]] || [[ "$link" =~ \` ]] || [[ "$link" =~ \* ]]; then
         continue
       fi
-      if [[ "$link" =~ ^/ ]]; then
-        if [[ ! -e "$link" ]]; then
+
+      # Strip anchor fragment if present
+      file_path="${link%%#*}"
+
+      # Check if file exists
+      if [[ "$file_path" =~ ^/ ]]; then
+        # Absolute path
+        if [[ ! -e "$file_path" ]]; then
           echo "  ❌ Broken link: $link"
           ERRORS=$((ERRORS + 1))
         fi
       else
-        target="$SKILL_DIR/$link"
+        # Relative path
+        target="$SKILL_DIR/$file_path"
         if [[ ! -e "$target" ]]; then
-          echo "  ❌ Broken link: $link (resolved to $target)"
+          echo "  ❌ Broken link: $link"
           ERRORS=$((ERRORS + 1))
         fi
       fi
-    fi
+    done
   done < "$SKILL_DIR/README.md"
 fi
 

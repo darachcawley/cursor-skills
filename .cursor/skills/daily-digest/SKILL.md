@@ -16,14 +16,14 @@ Before first use, copy each `.example.json` file to its real name and fill in yo
 3. `feature_watchlist.example.json` → `feature_watchlist.json` — Jira feature keys to track (optional); optional `epic_child_refresh` controls how often child issues are refetched (Step 6b)
 
 You also need the following MCP servers configured in Cursor:
-- **Slack MCP** — named `user-slack` (provides `conversations_history`, `conversations_search_messages`, etc.)
-- **Atlassian MCP** — named `user-atlassian` (provides `jira_get_issue`, `jira_search`)
+- **Slack MCP** — commonly `user-slack` or `user-user-slack` (provides `conversations_history`, `conversations_search_messages`, etc.); use whatever identifier Cursor shows for **your** Slack integration
+- **Atlassian MCP** — commonly `user-atlassian` (provides `jira_get_issue`, `jira_search`); use your Cursor MCP identifier
 
 ## MCP Servers
 
-This skill uses **only** the MCP servers configured in Cursor. The expected server names are `user-slack` and `user-atlassian`. If your MCP servers have different names, update the `server:` values in the workflow steps below.
+This skill uses **only** the MCP servers configured in Cursor. Workflow steps below use placeholders **`{slack_mcp_server}`** and **`{atlassian_mcp_server}`** in every `server:` field—substitute the **actual** server names from your Cursor MCP configuration (Settings → MCP), not the example names above.
 
-**Do NOT** use any other Slack MCP server.
+**Do NOT** use any other Slack MCP server than the one configured for your workspace.
 
 ## Required Input
 
@@ -58,13 +58,15 @@ Read `user_config.json` (in the **workspace root**) to get the user's identity a
 
 Use `{slack_username}`, `{jira_display_name}`, `{jira_username}`, `{jira_email}`, `{jira_account_id}`, `{slack_domain}`, `{slack_dm_domain}`, and `{jira_base_url}` as placeholders in the steps below. Substitute the actual values from the workspace-root `user_config.json` at runtime.
 
+**MCP server placeholders:** Use `{slack_mcp_server}` for every Slack tool invocation (`channels_list`, `conversations_history`, `conversations_search_messages`, `conversations_replies`, `users_search`, etc.) and `{atlassian_mcp_server}` for every Atlassian/Jira tool. Read the actual names from Cursor’s MCP panel (e.g. `user-slack`, `user-user-slack`, `user-atlassian`).
+
 **Optional Jira fields:** `jira_email` and `jira_account_id` are optional. Omit them or leave empty if unused.
 
 **Obsidian Markdown output directory:** `obsidian_digest_path` — optional absolute path to a folder inside your Obsidian vault. If omitted or empty, Step 7 writes Markdown under this skill’s `markdown/` directory (you can symlink that folder into a vault).
 
-**Atlassian MCP identity:** JQL `currentUser()` refers to whoever authenticated the **user-atlassian** MCP connection (OAuth or API token owner). That is usually your own Atlassian account when you connect the integration in Cursor. If `comment ~ currentUser()` returns no rows but you know you have mentions, or results clearly belong to a different identity, treat the connection as non-matching and rely on `jira_account_id` (see Step 6c).
+**Atlassian MCP identity:** JQL `currentUser()` refers to whoever authenticated the **`{atlassian_mcp_server}`** MCP connection (OAuth or API token owner). That is usually your own Atlassian account when you connect the integration in Cursor. If `comment ~ currentUser()` returns no rows but you know you have mentions, or results clearly belong to a different identity, treat the connection as non-matching and rely on `jira_account_id` (see Step 6c).
 
-**Resolve `jira_account_id` when missing:** Before Step 6c, if `jira_account_id` is absent or blank, call `jira_get_user_profile` on `user-atlassian` with `user_identifier` set to `{jira_email}` if configured, otherwise `{jira_username}`. From the response, read the Atlassian account ID field (commonly `accountId`). Use that value for AAID-based JQL in Step 6c and suggest the user persist it in `user_config.json`.
+**Resolve `jira_account_id` when missing:** Before Step 6c, if `jira_account_id` is absent or blank, call `jira_get_user_profile` on `{atlassian_mcp_server}` with `user_identifier` set to `{jira_email}` if configured, otherwise `{jira_username}`. From the response, read the Atlassian account ID field (commonly `accountId`). Use that value for AAID-based JQL in Step 6c and suggest the user persist it in `user_config.json`.
 
 **Note:** Some Slack workspaces use different domains for channel links vs DM links (e.g., `redhat.enterprise.slack.com` for channels but `redhat-internal.slack.com` for DMs). Use `{slack_dm_domain}` for all DM thread links (self-DMs and DMs with others). If `slack_dm_domain` is not set, fall back to `{slack_domain}`.
 
@@ -84,38 +86,50 @@ To add or remove channels or mention groups, edit `slack_channels_config.json` d
 
 ### Step 1b — Resolve channel IDs
 
-Slack deep links require **channel IDs** (e.g., `C09S4J8TV5Y`), not channel names. Before fetching messages, use `channels_list` on `user-slack` to get a mapping of channel names to IDs:
+Slack deep links require **channel IDs** (e.g., `C09S4J8TV5Y`), not channel names. Before fetching messages, use `channels_list` on `{slack_mcp_server}` to get a mapping of channel names to IDs:
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: channels_list
 args:
   channel_types: "public_channel,private_channel"
   limit: 999
 ```
 
-Also fetch IM (DM) channel IDs so self-DM and DM thread links work:
+Also fetch **all** IM (1:1 DM) rows and **all** MPIM rows so self-DM resolution, DM/MPDM **`thread_link`** ids, and **[slack-dm-list](../slack-dm-list/SKILL.md)** (invoked from Step 3b) have complete maps:
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: channels_list
 args:
   channel_types: "im"
-  limit: 50
+  limit: 999
 ```
 
-The self-DM channel is the IM entry named `@{slack_username}` (e.g., `D06BXAVPNA2` for `@dcawley`).
+```
+server: {slack_mcp_server}
+tool: channels_list
+args:
+  channel_types: "mpim"
+  limit: 999
+```
 
-Build a lookup map from channel name → channel ID. Use these IDs in **all** `thread_link` fields throughout the digest — including self-DMs and DMs with others. Links using channel names or user IDs instead of channel IDs will not work in Slack.
+For **both** `im` and `mpim`, paginate with **`cursor`** until no further cursor—do not assume one page lists every conversation.
 
-**IM list for Step 3b:** From the same `channels_list` (`im`) results, note every IM **channel ID** (`D…`) whose name is **not** `@{slack_username}` — those are DMs with other people. (Do not use this list to change Step 2 or Step 3c; it is only for Step 3b.)
+The self-DM channel is the IM entry named `@{slack_username}` (e.g., `D06BXAVPNA2` for `@dcawley`). Record its **`D…` id** as **`self_dm_channel_id`** for Step 3 and Step 3b (exclude self-DM from the Step 3b “with others / group” bucket).
+
+Build a lookup map from configured **public/private** channel name → channel ID. Use these IDs in **all** `thread_link` fields for configured channels. For **1:1** DMs use **`D…`** with `{slack_dm_domain}`; for **MPDMs** use **`C…`** with the domain rules in Step 5.
+
+**ID maps for Step 3b (slack-dm-list + digest links):** From `channels_list` (`im`) results, for **each** IM row record **`dm_channel_id`** (`D…`) and **`dm_peer_scope`** (Name column, e.g. `@handle`). Build an optional **`@handle` → `D…`** map for resolving bulk-search rows. From `mpim` results, map **`mpdm_name`** (row `Name` / `#mpdm-…`) → **`mpdm_channel_id`** (`C…`) and a display string from **Purpose** / **Topic**. **`dm_peer_scope`** / **`dm_channel_id`** are used for **legacy fallback** in Step 3b only if bulk `is:dm` fails.
+
+(Do not use these maps to change Step 2 or Step 3c.)
 
 ### Step 2 — Fetch channel messages for the target date
 
-For **each channel** in the config, use the `conversations_history` MCP tool on `user-slack`:
+For **each channel** in the config, use the `conversations_history` MCP tool on `{slack_mcp_server}`:
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: conversations_history
 args:
   channel_id: "#channel-name"
@@ -125,7 +139,7 @@ args:
 The `limit: "1d"` fetches one day of history. If the target date is not today, use `conversations_search_messages` with date filters instead:
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: conversations_search_messages
 args:
   filter_in_channel: "#channel-name"
@@ -137,20 +151,20 @@ args:
 
 Always fetch messages the user sent to themselves. These are personal reminders, action items, and reference links that should appear in the digest as actions.
 
-For today, use `conversations_history` on `user-slack`:
+For today, use `conversations_history` on `{slack_mcp_server}`:
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: conversations_history
 args:
   channel_id: "@{slack_username}"
   limit: "1d"
 ```
 
-For historical dates, use `conversations_search_messages` on `user-slack`:
+For historical dates, use `conversations_search_messages` on `{slack_mcp_server}`:
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: conversations_search_messages
 args:
   filter_in_im_or_mpim: "@{slack_username}"
@@ -160,42 +174,32 @@ args:
 
 Treat every self-DM as an action item. Set urgency based on the message content (default to `"today"` unless the message clearly refers to a future date). Include these in the digest under a channel entry named `"Self (notes/reminders)"`.
 
-### Step 3b — Fetch DMs with others (if enabled)
+### Step 3b — Fetch DMs with others and group DMs (if enabled)
 
-If `include_dms` is true, fetch messages for **one-on-one DMs with other people** for the digest date `D` using **only** targeted searches per DM channel. This keeps DM coverage date-accurate and **does not** change Step 2 (channels), Step 3 (self-DM), or Step 3c (usergroup searches). Do **not** use a workspace-wide `conversations_search_messages` call with no channel/IM filter for DMs — that would overlap and confuse other scopes.
+If `include_dms` is true, **delegate DM discovery and bulk fetch** to the **[slack-dm-list](../slack-dm-list/SKILL.md)** skill, then merge results into the digest pipeline. This **does not** change Step 2 (channels), Step 3 (self-DM), or Step 3c (usergroup searches).
 
-**Primary method (all dates, including today):**
+**MCP alignment:** Read the `conversations_search_messages` tool descriptor on `{slack_mcp_server}` before calling (required by slack-dm-list and this step).
 
-1. Use the IM rows from Step 1b (`channels_list`, `channel_types: "im"`). **Exclude** the self-DM channel (the IM named `@{slack_username}`).
-2. For **each** remaining IM channel ID (`D…`), run **`conversations_search_messages`** on `user-slack` scoped **only** to that conversation and `D`:
+**Primary path — invoke slack-dm-list**
 
-```
-server: user-slack
-tool: conversations_search_messages
-args:
-  filter_in_im_or_mpim: "<D-channel-id>"
-  filter_date_on: "YYYY-MM-DD"
-  limit: 100
-```
+1. **Read** [slack-dm-list/SKILL.md](../slack-dm-list/SKILL.md) in full at the start of this step (same workspace: `.cursor/skills/slack-dm-list/SKILL.md`).
+2. Run **slack-dm-list** [Workflow](../slack-dm-list/SKILL.md#workflow) steps **1 — Bulk search** and **2 — Dedupe by conversation** using digest date **`D`** as the target date and the same **`{slack_mcp_server}`** as the rest of this digest.
+3. **Digest-specific:** Unlike a standalone slack-dm-list user reply (which may present only a table), for the digest you **must retain all message rows** from the bulk search, **grouped by `Channel`**, for Steps **4** (`conversations_replies`) and **5** (summarization). Do not drop message text after deduping.
+4. Run **slack-dm-list** step **3 — Labels** to set digest **`channel`** display names (`"DM with @peer"`, `"MPDM: …"`, etc.). **Omit** the self-DM conversation from Step 3b’s grouped results: use **`self_dm_channel_id`** from Step 1b so self-DM content stays **only** under Step 3’s `"Self (notes/reminders)"`.
+5. Resolve **`channel_id`** and archive ids for **`thread_link`** using **slack-dm-list** step **4 — Optional archive links** (optional `channels_list`) **plus** Step 1b ID maps. Apply **`{slack_dm_domain}`** / `{slack_domain}` per Step 5 in this skill.
+6. **Empty vs error:** Follow slack-dm-list **Failure handling** and daily-digest **Safe write rules**: bulk search completes with **zero rows** ⇒ no DM/MPDM activity for `D` in search scope (valid empty). **Do not** treat as Slack-unhealthy.
+7. **Optional supplements** (only if the bulk `is:dm` path **errors** or a **`channel_id` cannot be resolved** after slack-dm-list fallbacks): you may use narrow `conversations_history` / client-side filtering to calendar **`D`**; mark **`key_highlights`** **best-effort** when you rely on this.
 
-Use the digest date for `filter_date_on`. Paginate with `cursor` if the tool returns a next cursor and you need more rows for that DM.
+**Legacy fallback (daily-digest only — if bulk `is:dm` is unsupported or errors on `{slack_mcp_server}`):** Do **not** use the slack-dm-list primary path. Instead: use Step 1b **paginated** `im` rows, **exclude** self-DM; for **each** remaining IM run `conversations_search_messages` with `filter_date_on: D` and `filter_in_im_or_mpim` try-order **(A)** `dm_peer_scope`, **(B)** `dm_channel_id` if the MCP documents `D…` for that parameter, **(C)** record IM as skipped if both fail. For **MPDMs** on `D` not returned by a failed bulk attempt, use `channels_list` (`mpim`) and scoped search only where needed. There is **no** 50-IM cap when paginating the full `im` list. List skipped or partial DMs in **`key_highlights`**.
 
-3. **Label** each result set in the digest as `"DM with @peer"` using the IM row’s peer name from Step 1b (the `Name` column / `@handle` for that `D` channel). Include `channel_id: "D…"` for thread links (`slack_dm_domain`).
-
-4. **Cap:** If there are more than **50** non-self IM channels, process the first 50 (same order as `channels_list`) unless the user config is extended later; note in the digest if any IM channels were skipped due to cap.
-
-5. **Optional supplement (only if needed):** If `conversations_search_messages` returns no rows for a DM you know had activity (API oddity), you may fetch recent context with `conversations_history` on that `channel_id` with `limit: "1d"` **only for digest date `D` equal to today** — do not use this as a substitute for date-filtered search on past dates.
-
-6. **Failure handling:** If some per-DM searches fail, continue others; align with **Safe write rules** for Slack (do not drop the whole digest). List skipped DMs in `key_highlights` or a short note if partial.
-
-**Do not use** `conversations_unreads` as the primary source for DM-with-others on date `D` — it reflects current unread state, not full activity on `D`. You may still call `conversations_unreads` for diagnostics only; it must not replace step 1–3 above for building the digest content.
+**Do not use** `conversations_unreads` as the primary source for DM activity on date `D` — it reflects unread state, not full history for `D`. You may still call `conversations_unreads` for diagnostics only; it must not replace Steps 1–3 above for building the digest content.
 
 ### Step 3c — Search for usergroup mentions
 
 For each group in `mention_groups`, search for messages that `@mention` that group on the target date. This catches messages in channels not in the configured list that still need attention.
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: conversations_search_messages
 args:
   search_query: "@openshift-ai-exploring-managers"
@@ -211,10 +215,10 @@ Deduplicate against messages already fetched from configured channels. For any n
 
 #### 3d.1 — Resolve the person
 
-Use `users_search` on `user-slack` to resolve the person's identity:
+Use `users_search` on `{slack_mcp_server}` to resolve the person's identity:
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: users_search
 args:
   query: "<email or handle provided by user>"
@@ -231,10 +235,10 @@ If multiple results are returned, pick the best match. If no results, inform the
 
 #### 3d.2 — Search for the person's messages
 
-Use `conversations_search_messages` on `user-slack` to find all messages from the person on the target date across all public channels:
+Use `conversations_search_messages` on `{slack_mcp_server}` to find all messages from the person on the target date across all public channels:
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: conversations_search_messages
 args:
   filter_users_from: "@<slack_username>"
@@ -251,7 +255,7 @@ If the results are paginated (a cursor is returned), fetch additional pages unti
 For each message that is part of a thread (has a `thread_ts`), fetch the full thread:
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: conversations_replies
 args:
   channel_id: "<channel_id from search result>"
@@ -345,10 +349,10 @@ Format example:
 
 ### Step 4 — Fetch thread replies
 
-For any message that is a thread parent (has `reply_count > 0` or `thread_ts`), fetch the full thread using `user-slack`:
+For any message that is a thread parent (has `reply_count > 0` or `thread_ts`), fetch the full thread using `{slack_mcp_server}`:
 
 ```
-server: user-slack
+server: {slack_mcp_server}
 tool: conversations_replies
 args:
   channel_id: "#channel-name"
@@ -510,8 +514,8 @@ Write the digest to `digests/YYYY-MM-DD.json` in this skill's directory. **Befor
 
 #### Detect source health
 
-- **Slack unhealthy** if: MCP/tool unavailable, auth failed, rate-limit abort, or any step in 1b–3c did not complete successfully for **configured** channels. **Do not** infer failure from “zero messages” alone if each channel was **successfully** fetched (no activity is valid).
-- **Slack healthy** if: `conversations_history` / `conversations_search_messages` (etc.) completed **per channel** (or per scope) for date `D` without tool error.
+- **Slack unhealthy** if: MCP/tool unavailable, auth failed, rate-limit abort, or any step in 1b–3c did not complete successfully for **configured** channels. **Do not** infer failure from “zero messages” alone if each channel was **successfully** fetched (no activity is valid). The same applies to **Step 3b**: if the **slack-dm-list bulk `is:dm` path** (or, when used, **legacy per-IM** attempts) **completed without tool error**, zero DM/MPDM rows for `D` is **valid empty**, not Slack-unhealthy—do not assume “there are always DMs.”
+- **Slack healthy** if: `conversations_history` / `conversations_search_messages` (etc.) completed **per channel** (or per scope) for date `D` without tool error, including Step 3b **slack-dm-list bulk search pagination** finishing without MCP outage (or legacy fallback completing / deterministically skipping IMs without outage).
 - **Jira unhealthy** if: `jira_search` / `jira_get_issue` / `jira_get_user_profile` throws, auth fails, or MCP returns an explicit error. **Do not** treat “0 search results” as failure by itself—empty results can be legitimate.
 - **Jira healthy** if: Steps 6b–6c complete without tool errors (even when zero mentions).
 
@@ -585,7 +589,7 @@ The user adds/removes keys in this file. Then read `active_features.json` and `j
 Build JQL `key in (KEY1, KEY2, …)` for all watchlist keys. **Chunk keys into groups of at most 50** per `jira_search` call (API result limit is 50 issues per page). Paginate with `start_at` / `page_token` until all keys are covered.
 
 ```
-server: user-atlassian
+server: {atlassian_mcp_server}
 tool: jira_search
 args:
   jql: "key in (RHAISTRAT-545, RHAISTRAT-172, RHAISTRAT-1112)"
@@ -630,7 +634,7 @@ Set file-level `updated_at` to the current timestamp. When using weekly child re
 
 ### Step 6c — Find Jiras mentioning me in comments
 
-Search for issues where **you** were @mentioned or otherwise referenced in comments, using `jira_search` on `user-atlassian`.
+Search for issues where **you** were @mentioned or otherwise referenced in comments, using `jira_search` on `{atlassian_mcp_server}`.
 
 **Why display-name-only search fails:** Jira Cloud stores @mentions as `[~accountid:AAID]`. Indexed search matches the **AAID**, not display name or username. See [Atlassian: search @mentions with JQL](https://community.atlassian.com/forums/Jira-articles/How-to-search-for-your-mentions-with-JQL/ba-p/2771763).
 
@@ -650,7 +654,7 @@ Always combine with: `updated >= "{window_start}"` (never `updated >= -3d` relat
 - **(A)** If `jira_account_id` is set after Step 0 — run **only**:
 
 ```
-server: user-atlassian
+server: {atlassian_mcp_server}
 tool: jira_search
 args:
   jql: "comment ~ \"{jira_account_id}\" AND updated >= \"{window_start}\""
@@ -661,7 +665,7 @@ args:
 - **(B)** If `jira_account_id` is **not** set — run **only**:
 
 ```
-server: user-atlassian
+server: {atlassian_mcp_server}
 tool: jira_search
 args:
   jql: "comment ~ currentUser() AND updated >= \"{window_start}\""
@@ -698,7 +702,7 @@ Read `jira_local_state.json` (same directory as this skill). If `step_6c_last.di
 For each unique issue key from searches, use `jira_get_issue`:
 
 ```
-server: user-atlassian
+server: {atlassian_mcp_server}
 tool: jira_get_issue
 args:
   issue_key: "PROJ-123"
@@ -711,10 +715,10 @@ Keep **fields** minimal; avoid `*all`.
 
 #### 6c.6 — Optional: `jira_batch_get_changelogs` (Jira Cloud only)
 
-For large issues where `comment_limit: 50` is heavy, you **may** use `jira_batch_get_changelogs` on `user-atlassian` with comma-separated `issue_ids_or_keys` and `fields` filtering to **comment**-related history to spot recent comment activity with less payload than loading all comments—**only** when you are confident parsing changelog entries. If unsure, keep `jira_get_issue`.
+For large issues where `comment_limit: 50` is heavy, you **may** use `jira_batch_get_changelogs` on `{atlassian_mcp_server}` with comma-separated `issue_ids_or_keys` and `fields` filtering to **comment**-related history to spot recent comment activity with less payload than loading all comments—**only** when you are confident parsing changelog entries. If unsure, keep `jira_get_issue`.
 
 ```
-server: user-atlassian
+server: {atlassian_mcp_server}
 tool: jira_batch_get_changelogs
 args:
   issue_ids_or_keys: "PROJ-123,PROJ-456"
@@ -855,7 +859,7 @@ cursor-skills/                            # Workspace root
 - When a channel has no activity for the target date, omit it from the digest (don't include empty channel entries)
 - Group standalone messages (not in threads) that are related by topic into a single summary entry
 - If rate-limited by Slack, pause and retry; inform the user of any channels that couldn't be fetched
-- **DMs with others (Step 3b):** Uses one `conversations_search_messages` call per non-self IM channel (with `filter_date_on` only) — it does not broaden Step 2 channel search or Step 3c usergroup search; many IMs means many calls, so respect the cap and retries
+- **DMs and group DMs (Step 3b):** Delegates bulk fetch and dedupe to **[slack-dm-list](../slack-dm-list/SKILL.md)** (Workflow steps 1–2), keeps **full message rows** for digest summarization, applies steps **3–4** for labels and ids, excludes **self-DM** from this step. **Legacy per-IM** try-order only if bulk `is:dm` fails. Optional `conversations_history` supplements **only on tool error**—**never** treat successful empty DM search as Slack-unhealthy. Step 3b does not broaden Step 2 or Step 3c
 - **Person search** (Step 3d) searches **all public channels**, not just configured ones
 - Person search includes full thread context from all participants to produce meaningful summaries
 - If the person had no activity on the target date, report that clearly

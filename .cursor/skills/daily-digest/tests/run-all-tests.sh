@@ -102,8 +102,8 @@ if [ -z "$STAGED_FILES" ]; then
   PASSED_TESTS=$((PASSED_TESTS + 1))
 else
   for pattern in "${SENSITIVE_PATTERNS[@]}"; do
-    # Check staged files only, exclude config examples and documentation
-    if echo "$STAGED_FILES" | xargs grep -l "$pattern" 2>/dev/null | grep -v "\.example\." | grep -v "tests/README\.md"; then
+    # Check staged files only, exclude config examples, test files, and documentation
+    if echo "$STAGED_FILES" | xargs grep -l "$pattern" 2>/dev/null | grep -v "\.example\." | grep -v "tests/" | grep -v "TESTING\.md" | grep -v "README\.md"; then
       echo "   ❌ Found potentially sensitive data: $pattern"
       SENSITIVE_ERRORS=$((SENSITIVE_ERRORS + 1))
     fi

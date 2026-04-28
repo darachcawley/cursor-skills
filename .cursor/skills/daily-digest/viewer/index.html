@@ -1121,6 +1121,37 @@
         return '<a class="action-owner" href="' + esc(slackDmUrl) + '" target="_blank" rel="noopener noreferrer" title="DM ' + esc(handle) + ' in Slack">' + esc(owner) + '</a>';
       }
 
+      /** Slack IM/DM channel ids start with D; use for filters and action location labels. */
+      function isSlackImChannelId(channelId) {
+        return !!(channelId && String(channelId).startsWith('D'));
+      }
+
+      /** First up to three participants for display instead of "DM with …" / channel title. */
+      function formatImParticipantLabel(participants, fallbackChannel) {
+        const parts = (participants || []).filter(Boolean).slice(0, 3);
+        if (parts.length === 0) return fallbackChannel || '';
+        return parts.join(', ');
+      }
+
+      /** To Do row: Slack action with channel_id on the row, or legacy isDm + participants. */
+      function slackActionLocationLabel(a) {
+        if (a.source !== 'slack') return a.channel || '';
+        if (!a.isSlackIm) return a.channel || '';
+        return formatImParticipantLabel(a.participants, a.channel);
+      }
+
+      /** Executive summary rows only have channel + thread_link — resolve thread participants from digest. */
+      function slackImLocationFromDigest(digest, execAction) {
+        const fallback = execAction.channel || '';
+        if (!digest || !digest.channels) return fallback;
+        const tl = execAction.thread_link || '';
+        const ch = (digest.channels || []).find(c => c.channel === fallback)
+          || (digest.channels || []).find(c => (c.threads || []).some(t => t.thread_link === tl));
+        if (!ch || !isSlackImChannelId(ch.channel_id)) return fallback;
+        const th = (ch.threads || []).find(t => t.thread_link === tl) || (ch.threads || [])[0];
+        return formatImParticipantLabel(th && th.participants, fallback);
+      }
+
       const sidebarList = document.getElementById('sidebar-list');
       const mainContent = document.getElementById('main-content');
       const todoBtn = document.getElementById('sidebar-todo-btn');
@@ -1206,7 +1237,10 @@
             for (const a of es.my_actions) {
               html += '<li>';
               html += '<strong>' + esc(a.action) + '</strong>';
-              if (a.channel) html += ' <span class="exec-channel">in ' + esc(a.channel) + '</span>';
+              if (a.channel) {
+                const loc = slackImLocationFromDigest(data, a);
+                html += ' <span class="exec-channel">in ' + esc(loc) + '</span>';
+              }
               if (a.thread_link) html += ' <a href="' + esc(a.thread_link) + '" target="_blank" rel="noopener noreferrer">Open</a>';
               html += '</li>';
             }
@@ -1220,7 +1254,10 @@
               html += '<li>';
               html += '<strong>' + esc(a.action) + '</strong>';
               if (a.owner) html += ' <span class="exec-owner">' + esc(a.owner) + '</span>';
-              if (a.channel) html += ' <span class="exec-channel">in ' + esc(a.channel) + '</span>';
+              if (a.channel) {
+                const loc = slackImLocationFromDigest(data, a);
+                html += ' <span class="exec-channel">in ' + esc(loc) + '</span>';
+              }
               if (a.thread_link) html += ' <a href="' + esc(a.thread_link) + '" target="_blank" rel="noopener noreferrer">Open</a>';
               html += '</li>';
             }
@@ -1274,7 +1311,8 @@
         } else {
           html += '<div id="channels-container">';
           for (const ch of channels) {
-            const isDm = ch.channel.toLowerCase().startsWith('dm ');
+            const isSlackIm = isSlackImChannelId(ch.channel_id);
+            const isDm = isSlackIm || ch.channel.toLowerCase().startsWith('dm ') || ch.channel === 'Self (notes/reminders)';
             const isMentionGroup = ch.channel.toLowerCase().startsWith('mentions (');
             html += '<div class="channel-section" data-channel="' + esc(ch.channel) + '" data-is-dm="' + (isDm ? 'yes' : 'no') + '" data-source="slack">';
             html += '<div class="channel-name">' + esc(ch.channel) + '</div>';
@@ -1436,7 +1474,9 @@
 
         for (const digest of digests) {
           for (const ch of (digest.channels || [])) {
-            const isDm = ch.channel.toLowerCase().startsWith('dm ');
+            const channelId = ch.channel_id || '';
+            const isSlackIm = isSlackImChannelId(channelId);
+            const isDm = isSlackIm || ch.channel.toLowerCase().startsWith('dm ') || ch.channel === 'Self (notes/reminders)';
             const tagged = ch.channel.toLowerCase().startsWith('mentions (');
             for (const t of (ch.threads || [])) {
               for (const a of (t.actions_needed || [])) {
@@ -1445,6 +1485,8 @@
                   action: a.action,
                   owner: a.owner || '',
                   channel: ch.channel,
+                  channel_id: channelId,
+                  isSlackIm,
                   isDm,
                   tagged,
                   date: digest.date,
@@ -1558,7 +1600,7 @@
       function filterActions(actions, filters) {
         return actions.filter(a => {
           if (filters.channel === 'all_dms') {
-            if (!a.isDm) return false;
+            if (!a.isSlackIm) return false;
           } else if (filters.channel && filters.channel !== 'all') {
             if (a.channel !== filters.channel) return false;
           }
@@ -1612,7 +1654,7 @@
             html += '<div class="todo-action-text">' + linkify(a.action) + '</div>';
             html += '<div class="todo-action-meta">';
             html += ownerHtml(a.owner);
-            html += '<span>' + esc(a.channel) + '</span>';
+            html += '<span>' + esc(slackActionLocationLabel(a)) + '</span>';
             html += '<span>' + esc(a.date) + '</span>';
             if (a.thread_link) {
               html += '<a href="' + esc(a.thread_link) + '" target="_blank" rel="noopener noreferrer">Open in Slack</a>';
