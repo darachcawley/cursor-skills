@@ -16,6 +16,11 @@ cp .cursor/skills/daily-digest/slack_channels_config.example.json \
    .cursor/skills/daily-digest/slack_channels_config.json
 cp .cursor/skills/daily-digest/feature_watchlist.example.json \
    .cursor/skills/daily-digest/feature_watchlist.json
+cp .cursor/skills/daily-digest/close_circle.example.json \
+   .cursor/skills/daily-digest/close_circle.json
+# edit close_circle.json — list Slack handles (@user) for your close circle
+# This enables the "Close Circle" filter tab in the viewer to focus on DMs and
+# actions from your immediate team members
 ```
 
 Configure Slack + Jira MCP in `.cursor/mcp.json` (see [README.md](../../../README.md)).
